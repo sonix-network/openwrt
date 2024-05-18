@@ -26,6 +26,7 @@ jobs:
           ./scripts/feeds update -a
           ./scripts/feeds install -a
           cp -v sonix/diffconfig .config
+          sed -i "s/SONIX-GIT/SONIX-${{ steps.vars.outputs.version_number }}/g" .config
           make -j$(nproc) defconfig download clean world V=s
           cp -v .config bin/targets/octeon/generic/openwrt-octeon-generic-cisco_vedge1000.config
       - name: Release
