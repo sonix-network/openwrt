@@ -1,0 +1,27 @@
+From cf33d012c275d12d1b95bafcd5e6d68f99e42c2a Mon Sep 17 00:00:00 2001
+From: Christian Svensson <blue@cmd.nu>
+Date: Sat, 18 May 2024 17:54:20 +0200
+Subject: [PATCH] Fix JSON in luci-mod-system.json
+
+Fixes #7126
+
+Signed-off-by: Christian Svensson <blue@cmd.nu>
+
+Signed-off-by: Christian Svensson <blue@cmd.nu>
+---
+ .../root/usr/share/rpcd/acl.d/luci-mod-system.json              | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/feeds/luci/modules/luci-mod-system/root/usr/share/rpcd/acl.d/luci-mod-system.json b/modules/luci-mod-system/root/usr/share/rpcd/acl.d/luci-mod-system.json
+index 08528162449d..b096d870a754 100644
+--- a/feeds/luci/modules/luci-mod-system/root/usr/share/rpcd/acl.d/luci-mod-system.json
++++ b/feeds/luci/modules/luci-mod-system/root/usr/share/rpcd/acl.d/luci-mod-system.json
+@@ -12,7 +12,7 @@
+ 		"write": {
+ 			"ubus": {
+ 				"luci": [ "setLocaltime", "setPassword" ],
+-				"rc": [ "init" ],
++				"rc": [ "init" ]
+ 			},
+ 			"uci": [ "luci", "system" ]
+ 		}
