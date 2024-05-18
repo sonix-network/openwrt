@@ -1,0 +1,38 @@
+name: Create GitHub release
+
+permissions:
+  contents: write
+
+on:
+  push:
+    branches:
+      - "viptela-vedge1000"
+  workflow_dispatch:
+
+jobs:
+  release:
+    runs-on: self-hosted
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set outputs
+        id: vars
+        run: |
+          echo "version_number=$(date +%Y-%m-%d).${{github.run_number}}" >> $GITHUB_OUTPUT
+      - name: Compile
+        id: compile
+        run: |
+          ./scripts/feeds update -a
+          ./scripts/feeds install -a
+          cp -v sonix/diffconfig .config
+          make -j$(nproc) defconfig download clean world V=s
+          cp -v .config bin/targets/octeon/generic/openwrt-octeon-generic-cisco_vedge1000.config
+      - name: Release
+        uses: softprops/action-gh-release@v1
+        with:
+          name: "${{ steps.vars.outputs.version_number }}"
+          prerelease: true
+          files: |
+            bin/targets/octeon/generic/openwrt-octeon-generic-cisco_vedge1000*
+
