@@ -27,13 +27,15 @@ jobs:
           ./scripts/feeds install -a
           cp -v sonix/diffconfig .config
           sed -i "s/SONIX-GIT/SONIX-${{ steps.vars.outputs.version_number }}/g" .config
-          make -j$(nproc) defconfig download clean world V=s
+          make -j$(nproc) defconfig # download clean world V=s  # TEMP!
+          mkdir -p bin/targets/octeon/generic/ # TEMP!
           cp -v .config bin/targets/octeon/generic/openwrt-octeon-generic-cisco_vedge1000.config
       - name: Release
         uses: softprops/action-gh-release@v1
         with:
           name: "${{ steps.vars.outputs.version_number }}"
           prerelease: true
+          tag_name: "v${{ steps.vars.outputs.version_number }}"
           files: |
             bin/targets/octeon/generic/openwrt-octeon-generic-cisco_vedge1000*
 
