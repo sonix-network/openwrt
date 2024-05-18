@@ -36,5 +36,4 @@ jobs:
           prerelease: true
           tag_name: "v${{ steps.vars.outputs.version_number }}"
           files: |
-            bin/targets/octeon/generic/openwrt-octeon-generic-cisco_vedge1000*
-
+            bin/targets/octeon/generic/openwrt-*
