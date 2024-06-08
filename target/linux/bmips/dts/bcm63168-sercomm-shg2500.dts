@@ -109,7 +109,8 @@
 
 		led_power_red: led@8 {
 			reg = <8>;
-			label = "red:power";
+			function = LED_FUNCTION_POWER;
+			color = <LED_COLOR_ID_RED>;
 		};
 
 		led@9 {
@@ -191,7 +192,7 @@
 			#address-cells = <1>;
 			#size-cells = <1>;
 
-			cferom: partition@0 {
+			partition@0 {
 				label = "cferom";
 				reg = <0x0000000 0x0020000>;
 				read-only;

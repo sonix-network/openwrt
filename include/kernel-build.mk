@@ -63,7 +63,7 @@ ifdef CONFIG_COLLECT_KERNEL_DEBUG
 	mkdir -p $(KERNEL_BUILD_DIR)/debug/modules
 	$(CP) $(LINUX_DIR)/vmlinux $(KERNEL_BUILD_DIR)/debug/
 	-$(CP) \
-		$(STAGING_DIR_ROOT)/lib/modules/$(LINUX_VERSION)/* \
+		$(STAGING_DIR_ROOT)/lib/modules/$(LINUX_VERSION)/*.ko \
 		$(KERNEL_BUILD_DIR)/debug/modules/
 	$(FIND) $(KERNEL_BUILD_DIR)/debug -type f | $(XARGS) $(KERNEL_CROSS)strip --only-keep-debug
 	$(TAR) c -C $(KERNEL_BUILD_DIR) debug \
@@ -155,6 +155,10 @@ define BuildKernel
   prepare: $(STAMP_PREPARED)
   compile: $(LINUX_DIR)/.modules
 	$(MAKE) -C image compile TARGET_BUILD=
+
+  dtb: $(STAMP_CONFIGURED)
+	$(_SINGLE)$(KERNEL_MAKE) scripts_dtc
+	$(MAKE) -C image compile-dtb TARGET_BUILD=
 
   oldconfig menuconfig nconfig xconfig: $(STAMP_PREPARED) $(STAMP_CHECKED) FORCE
 	rm -f $(LINUX_DIR)/.config.prev

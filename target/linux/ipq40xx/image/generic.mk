@@ -3,6 +3,11 @@ DEVICE_VARS += NETGEAR_BOARD_ID NETGEAR_HW_ID
 DEVICE_VARS += RAS_BOARD RAS_ROOTFS_SIZE RAS_VERSION
 DEVICE_VARS += WRGG_DEVNAME WRGG_SIGNATURE
 
+define Build/netgear-fit-padding
+	./netgear-fit-padding.py $@ $@.new
+	mv $@.new $@
+endef
+
 define Device/FitImage
 	KERNEL_SUFFIX := -uImage.itb
 	KERNEL = kernel-bin | gzip | fit gzip $$(KDIR)/image-$$(DEVICE_DTS).dtb
@@ -33,8 +38,8 @@ define Device/DniImage
 	NETGEAR_BOARD_ID :=
 	NETGEAR_HW_ID :=
 	IMAGES += factory.img
-	IMAGE/factory.img := append-kernel | pad-offset 64k 64 | append-uImage-fakehdr filesystem | append-rootfs | pad-rootfs | netgear-dni
-	IMAGE/sysupgrade.bin := append-kernel | pad-offset 64k 64 | append-uImage-fakehdr filesystem | \
+	IMAGE/factory.img := append-kernel | netgear-fit-padding | append-uImage-fakehdr filesystem | append-rootfs | pad-rootfs | netgear-dni
+	IMAGE/sysupgrade.bin := append-kernel | netgear-fit-padding | append-uImage-fakehdr filesystem | \
 		append-rootfs | pad-rootfs | check-size | append-metadata
 endef
 
@@ -447,6 +452,8 @@ define Device/engenius_eap1300
 	$(call Device/FitImage)
 	DEVICE_VENDOR := EnGenius
 	DEVICE_MODEL := EAP1300
+	DEVICE_ALT0_VENDOR := EnGenius
+	DEVICE_ALT0_MODEL := EAP1300EXT
 	DEVICE_DTS_CONFIG := config@4
 	BOARD_NAME := eap1300
 	SOC := qcom-ipq4018
@@ -454,8 +461,7 @@ define Device/engenius_eap1300
 	IMAGE_SIZE := 25344k
 	IMAGE/sysupgrade.bin := append-kernel | append-rootfs | pad-rootfs | append-metadata
 endef
-# Missing DSA Setup
-#TARGET_DEVICES += engenius_eap1300
+TARGET_DEVICES += engenius_eap1300
 
 define Device/engenius_eap2200
 	$(call Device/FitImage)
@@ -723,6 +729,20 @@ define Device/linksys_mr8300
 endef
 TARGET_DEVICES += linksys_mr8300
 
+define Device/linksys_whw03
+	$(call Device/FitzImage)
+	DEVICE_VENDOR := Linksys
+	DEVICE_MODEL := WHW03
+	SOC := qcom-ipq4019
+	KERNEL_SIZE := 8192k
+	IMAGE_SIZE := 131072k
+	IMAGES += factory.bin
+	IMAGE/factory.bin  := append-kernel | pad-to $$$$(KERNEL_SIZE) | append-rootfs | pad-rootfs | linksys-image type=WHW03
+	DEVICE_PACKAGES := ath10k-firmware-qca9888-ct kmod-leds-pca963x kmod-spi-dev kmod-bluetooth \
+		kmod-fs-ext4 e2fsprogs kmod-fs-f2fs mkf2fs losetup
+endef
+TARGET_DEVICES += linksys_whw03
+
 define Device/linksys_whw03v2
 	$(call Device/FitzImage)
 	DEVICE_VENDOR := Linksys
@@ -840,6 +860,25 @@ define Device/netgear_orbi
 		sysupgrade-tar rootfs=$$$$@ | append-metadata
 	DEVICE_PACKAGES := ath10k-firmware-qca9984-ct e2fsprogs kmod-fs-ext4 losetup
 endef
+
+define Device/netgear_lbr20
+	$(call Device/netgear_orbi)
+	DEVICE_MODEL := LBR20
+	NETGEAR_BOARD_ID := LBR20
+	NETGEAR_HW_ID := 29766182+0+256+512+2x2+2x2+2x2+1
+	KERNEL_SIZE := 7340032
+	BLOCKSIZE := 128k
+	PAGESIZE := 2048
+	UBINIZE_OPTS := -E 5
+	IMAGE/factory.img := append-kernel | pad-offset $$$$(BLOCKSIZE) 64 | \
+		append-uImage-fakehdr filesystem | pad-to $$$$(KERNEL_SIZE) | \
+		append-ubi | netgear-dni
+	IMAGE/sysupgrade.bin := append-kernel | pad-offset $$$$(BLOCKSIZE) 64 | \
+		append-uImage-fakehdr filesystem | sysupgrade-tar kernel=$$$$@ | \
+		append-metadata
+	DEVICE_PACKAGES := ipq-wifi-netgear_lbr20 ath10k-firmware-qca9888-ct kmod-usb-net-qmi-wwan kmod-usb-serial-option uqmi
+endef
+TARGET_DEVICES += netgear_lbr20
 
 define Device/netgear_rbx40
 	$(call Device/netgear_orbi)
@@ -1234,7 +1273,7 @@ TARGET_DEVICES += zte_mf287pro
 define Device/zte_mf289f
 	$(call Device/zte_mf28x_common)
 	DEVICE_MODEL := MF289F
-	DEVICE_PACKAGES += ipq-wifi-zte_mf289f ath10k-firmware-qca9984-ct
+	DEVICE_PACKAGES += ath10k-firmware-qca9984-ct
 endef
 TARGET_DEVICES += zte_mf289f
 

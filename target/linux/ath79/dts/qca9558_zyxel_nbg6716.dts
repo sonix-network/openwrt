@@ -1,5 +1,7 @@
 // SPDX-License-Identifier: GPL-2.0-or-later OR MIT
 
+#include <dt-bindings/leds/common.h>
+
 #include "qca955x_zyxel_nbg6x16.dtsi"
 
 / {
@@ -17,7 +19,8 @@
 		compatible = "gpio-leds";
 
 		led_power: power {
-			label = "white:power";
+			function = LED_FUNCTION_POWER;
+			color = <LED_COLOR_ID_WHITE>;
 			gpios = <&gpio 15 GPIO_ACTIVE_LOW>;
 		};
 
@@ -53,7 +56,8 @@
 		};
 
 		wps {
-			label = "white:wps";
+			function = LED_FUNCTION_WPS;
+			color = <LED_COLOR_ID_WHITE>;
 			gpios = <&gpio 21 GPIO_ACTIVE_LOW>;
 		};
 	};
@@ -107,6 +111,16 @@
 				label = "art";
 				reg = <0x050000 0x010000>;
 				read-only;
+
+				nvmem-layout {
+					compatible = "fixed-layout";
+					#address-cells = <1>;
+					#size-cells = <1>;
+
+					cal_art_5000: calibration@5000 {
+						reg = <0x5000 0x844>;
+					};
+				};
 			};
 
 			partition@60000 {
@@ -143,16 +157,20 @@
 		firmware@500000 {
 			label = "firmware";
 			reg = <0x500000 0x7b00000>;
-		};
 
-		partition@500000 {
-			label = "kernel";
-			reg = <0x500000 0x400000>;
-		};
+			compatible = "fixed-partitions";
+			#address-cells = <1>;
+			#size-cells = <1>;
 
-		partition@900000 {
-			label = "ubi";
-			reg = <0x900000 0x7700000>;
+			partition@0 {
+				label = "kernel";
+				reg = <0x0 0x400000>;
+			};
+
+			partition@400000 {
+				label = "ubi";
+				reg = <0x400000 0x7700000>;
+			};
 		};
 	};
 };
@@ -163,6 +181,8 @@
 	wifi@0,0 {
 		compatible = "qcom,ath10k";
 		reg = <0 0 0 0 0>;
+		nvmem-cells = <&cal_art_5000>;
+		nvmem-cell-names = "calibration";
 		qcom,ath10k-calibration-variant = "ZyXEL-NBG6716";
 	};
 };

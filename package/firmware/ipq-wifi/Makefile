@@ -6,10 +6,9 @@ PKG_RELEASE:=1
 
 PKG_SOURCE_PROTO:=git
 PKG_SOURCE_URL=$(PROJECT_GIT)/project/firmware/qca-wireless.git
-PKG_SOURCE_DATE:=2023-11-10
-PKG_SOURCE_VERSION:=0c2e810e71ed0a59fb00246c7fa2c236ff67a0ee
-PKG_MIRROR_HASH:=fc6016540bd2c67484952d0e4432d740f0e022d9b688e851bb6321def8d36844
-
+PKG_SOURCE_DATE:=2024-04-26
+PKG_SOURCE_VERSION:=644ba9ea2e6685e420561ef098cb6fbaaf136cbf
+PKG_MIRROR_HASH:=3b913fd6fb0fac404b16e67c66d36c10315dba5459a8d495d870afcb1e2c33cd
 PKG_FLAGS:=nonshared
 
 include $(INCLUDE_DIR)/package.mk
@@ -28,26 +27,36 @@ endef
 # <https://wireless.wiki.kernel.org/en/users/drivers/ath10k/boardfiles>
 
 ALLWIFIBOARDS:= \
+	8devices_mango \
 	arcadyan_aw1000 \
 	buffalo_wxr-5950ax12 \
+	cmcc_rm2-6 \
 	compex_wpq873 \
 	dynalink_dl-wrx36 \
 	edgecore_eap102 \
 	edimax_cax1800 \
+	linksys_mx4200 \
+	linksys_mx5300 \
+	linksys_mx8500 \
+	netgear_lbr20 \
 	netgear_rax120v2 \
+	netgear_sxk80 \
+	netgear_wax214 \
 	netgear_wax218 \
 	netgear_wax620 \
 	netgear_wax630 \
 	prpl_haze \
 	qnap_301w \
 	redmi_ax6 \
+	spectrum_sax1v1k \
 	wallys_dr40x9 \
 	xiaomi_ax3600 \
 	xiaomi_ax9000 \
 	yyets_le1 \
 	yuncore_ax880 \
+	yuncore_fap650 \
+	zbtlink_zbt-z800ax \
 	zte_mf269 \
-	zte_mf289f \
 	zte_mf287 \
 	zte_mf287plus \
 	zyxel_nbg7815
@@ -83,12 +92,14 @@ define ipq-wifi-install-one
     $(call ipq-wifi-install-one-to,$(1),$(2),QCA9984/hw1.0),\
   $(if $(filter $(suffix $(1)),.QCA99X0 .qca99x0),\
     $(call ipq-wifi-install-one-to,$(1),$(2),QCA99X0/hw2.0),\
+  $(if $(filter $(suffix $(1)),.IPQ6018 .ipq6018),\
+    $(call ipq-wifi-install-ath11-one-to,$(1),$(2),IPQ6018/hw1.0),\
   $(if $(filter $(suffix $(1)),.IPQ8074 .ipq8074),\
     $(call ipq-wifi-install-ath11-one-to,$(1),$(2),IPQ8074/hw2.0),\
   $(if $(filter $(suffix $(1)),.QCN9074 .qcn9074),\
     $(call ipq-wifi-install-ath11-one-to,$(1),$(2),QCN9074/hw1.0),\
     $(error Unrecognized board-file suffix '$(suffix $(1))' for '$(1)')\
-  )))))))
+  ))))))))
 
 endef
 # Blank line required at end of above define due to foreach context
@@ -138,26 +149,36 @@ endef
 # Board files should follow this name structure:
 #   board-<devicename>.<qca4019|qca9888|qca9889|qca9984|qca99x0|ipq8074>
 
+$(eval $(call generate-ipq-wifi-package,8devices_mango,8devices Mango))
 $(eval $(call generate-ipq-wifi-package,arcadyan_aw1000,Arcadyan AW1000))
 $(eval $(call generate-ipq-wifi-package,buffalo_wxr-5950ax12,Buffalo WXR-5950AX12))
+$(eval $(call generate-ipq-wifi-package,cmcc_rm2-6,CMCC RM2-6))
 $(eval $(call generate-ipq-wifi-package,compex_wpq873,Compex WPQ-873))
 $(eval $(call generate-ipq-wifi-package,dynalink_dl-wrx36,Dynalink DL-WRX36))
 $(eval $(call generate-ipq-wifi-package,edgecore_eap102,Edgecore EAP102))
 $(eval $(call generate-ipq-wifi-package,edimax_cax1800,Edimax CAX1800))
+$(eval $(call generate-ipq-wifi-package,linksys_mx4200,Linksys MX4200))
+$(eval $(call generate-ipq-wifi-package,linksys_mx5300,Linksys MX5300))
+$(eval $(call generate-ipq-wifi-package,linksys_mx8500,Linksys MX8500))
+$(eval $(call generate-ipq-wifi-package,netgear_lbr20,Netgear LBR20))
 $(eval $(call generate-ipq-wifi-package,netgear_rax120v2,Netgear RAX120v2))
+$(eval $(call generate-ipq-wifi-package,netgear_sxk80,Netgear SXK80))
+$(eval $(call generate-ipq-wifi-package,netgear_wax214,Netgear WAX214))
 $(eval $(call generate-ipq-wifi-package,netgear_wax218,Netgear WAX218))
 $(eval $(call generate-ipq-wifi-package,netgear_wax620,Netgear WAX620))
 $(eval $(call generate-ipq-wifi-package,netgear_wax630,Netgear WAX630))
 $(eval $(call generate-ipq-wifi-package,qnap_301w,QNAP 301w))
 $(eval $(call generate-ipq-wifi-package,prpl_haze,prpl Haze))
 $(eval $(call generate-ipq-wifi-package,redmi_ax6,Redmi AX6))
+$(eval $(call generate-ipq-wifi-package,spectrum_sax1v1k,Spectrum SAX1V1K))
 $(eval $(call generate-ipq-wifi-package,wallys_dr40x9,Wallys DR40X9))
 $(eval $(call generate-ipq-wifi-package,xiaomi_ax3600,Xiaomi AX3600))
 $(eval $(call generate-ipq-wifi-package,xiaomi_ax9000,Xiaomi AX9000))
 $(eval $(call generate-ipq-wifi-package,yyets_le1,YYeTs LE1))
 $(eval $(call generate-ipq-wifi-package,yuncore_ax880,Yuncore AX880))
+$(eval $(call generate-ipq-wifi-package,yuncore_fap650,Yuncore FAP650))
+$(eval $(call generate-ipq-wifi-package,zbtlink_zbt-z800ax,Zbtlink ZBT-Z800AX))
 $(eval $(call generate-ipq-wifi-package,zte_mf269,ZTE MF269))
-$(eval $(call generate-ipq-wifi-package,zte_mf289f,ZTE MF289F))
 $(eval $(call generate-ipq-wifi-package,zte_mf287,ZTE MF287))
 $(eval $(call generate-ipq-wifi-package,zte_mf287plus,ZTE MF287Plus))
 $(eval $(call generate-ipq-wifi-package,zyxel_nbg7815,Zyxel NBG7815))

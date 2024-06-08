@@ -39,7 +39,7 @@ IMG_PREFIX_EXTRA:=$(if $(EXTRA_IMAGE_NAME),$(call sanitize,$(EXTRA_IMAGE_NAME))-
 IMG_PREFIX_VERNUM:=$(if $(CONFIG_VERSION_FILENAMES),$(call sanitize,$(VERSION_NUMBER))-)
 IMG_PREFIX_VERCODE:=$(if $(CONFIG_VERSION_CODE_FILENAMES),$(call sanitize,$(VERSION_CODE))-)
 
-IMG_PREFIX:=$(VERSION_DIST_SANITIZED)-$(IMG_PREFIX_VERNUM)$(IMG_PREFIX_VERCODE)$(IMG_PREFIX_EXTRA)$(BOARD)$(if $(SUBTARGET),-$(SUBTARGET))
+IMG_PREFIX:=$(VERSION_DIST_SANITIZED)-$(IMG_PREFIX_VERNUM)$(IMG_PREFIX_VERCODE)$(IMG_PREFIX_EXTRA)$(BOARD)-$(SUBTARGET)
 IMG_ROOTFS:=$(IMG_PREFIX)-rootfs
 IMG_COMBINED:=$(IMG_PREFIX)-combined
 ifeq ($(DUMP),)
@@ -151,17 +151,13 @@ endif
 
 # Disable noisy checks by default as in upstream
 DTC_WARN_FLAGS := \
+  -Wno-interrupt_provider \
+  -Wno-unique_unit_address \
   -Wno-unit_address_vs_reg \
-  -Wno-simple_bus_reg \
-  -Wno-unit_address_format \
-  -Wno-pci_bridge \
-  -Wno-pci_device_bus_num \
-  -Wno-pci_device_reg \
   -Wno-avoid_unnecessary_addr_size \
   -Wno-alias_paths \
   -Wno-graph_child_address \
-  -Wno-graph_port \
-  -Wno-unique_unit_address
+  -Wno-simple_bus_reg
 
 DTC_FLAGS += $(DTC_WARN_FLAGS)
 DTCO_FLAGS += $(DTC_WARN_FLAGS)
@@ -189,6 +185,7 @@ define Image/BuildDTB/sub
 		-I$(DTS_DIR) \
 		-I$(DTS_DIR)/include \
 		-I$(LINUX_DIR)/include/ \
+		-I$(LINUX_DIR)/scripts/dtc/include-prefixes \
 		-undef -D__DTS__ $(3) \
 		-o $(2).tmp $(1)
 	$(LINUX_DIR)/scripts/dtc/dtc -O dtb \
@@ -281,14 +278,17 @@ define Image/mkfs/ext4
 endef
 
 define Image/Manifest
-	$(call opkg,$(TARGET_DIR_ORIG)) list-installed > \
-		$(BIN_DIR)/$(IMG_PREFIX)$(if $(PROFILE_SANITIZED),-$(PROFILE_SANITIZED)).manifest
-ifndef IB
-	$(if $(CONFIG_JSON_CYCLONEDX_SBOM), \
-		$(SCRIPT_DIR)/package-metadata.pl imgcyclonedxsbom \
-		$(TMP_DIR)/.packageinfo \
+	$(if $(CONFIG_USE_APK), \
+		$(call apk,$(TARGET_DIR_ORIG)) list --quiet --manifest --no-network | sort | sed 's/ / - /'  > \
+			$(BIN_DIR)/$(IMG_PREFIX)$(if $(PROFILE_SANITIZED),-$(PROFILE_SANITIZED)).manifest, \
+		$(call opkg,$(TARGET_DIR_ORIG)) list-installed > \
+			$(BIN_DIR)/$(IMG_PREFIX)$(if $(PROFILE_SANITIZED),-$(PROFILE_SANITIZED)).manifest \
+	)
+ifneq ($(CONFIG_JSON_CYCLONEDX_SBOM),)
+	$(SCRIPT_DIR)/package-metadata.pl imgcyclonedxsbom \
+		$(if $(IB),$(TOPDIR)/.packageinfo, $(TMP_DIR)/.packageinfo) \
 		$(BIN_DIR)/$(IMG_PREFIX)$(if $(PROFILE_SANITIZED),-$(PROFILE_SANITIZED)).manifest > \
-		$(BIN_DIR)/$(IMG_PREFIX)$(if $(PROFILE_SANITIZED),-$(PROFILE_SANITIZED)).bom.cdx.json)
+		$(BIN_DIR)/$(IMG_PREFIX)$(if $(PROFILE_SANITIZED),-$(PROFILE_SANITIZED)).bom.cdx.json
 endif
 endef
 
@@ -332,7 +332,20 @@ opkg_target = \
 	$(call opkg,$(mkfs_cur_target_dir)) \
 		-f $(mkfs_cur_target_dir).conf
 
+apk_target = $(call apk,$(mkfs_cur_target_dir)) --no-scripts
+
+
 target-dir-%: FORCE
+ifneq ($(CONFIG_USE_APK),)
+	rm -rf $(mkfs_cur_target_dir)
+	$(CP) $(TARGET_DIR_ORIG) $(mkfs_cur_target_dir)
+	mv $(mkfs_cur_target_dir)/etc/apk/repositories $(mkfs_cur_target_dir).repositories
+	$(if $(mkfs_packages_remove), \
+		$(apk_target) del $(mkfs_packages_remove))
+	$(if $(mkfs_packages_add), \
+		$(apk_target) add $(mkfs_packages_add))
+	mv $(mkfs_cur_target_dir).repositories $(mkfs_cur_target_dir)/etc/apk/repositories
+else
 	rm -rf $(mkfs_cur_target_dir) $(mkfs_cur_target_dir).opkg
 	$(CP) $(TARGET_DIR_ORIG) $(mkfs_cur_target_dir)
 	-mv $(mkfs_cur_target_dir)/etc/opkg $(mkfs_cur_target_dir).opkg
@@ -346,6 +359,7 @@ target-dir-%: FORCE
 			$(call opkg_package_files,$(mkfs_packages_add)))
 	-$(CP) -T $(mkfs_cur_target_dir).opkg/ $(mkfs_cur_target_dir)/etc/opkg/
 	rm -rf $(mkfs_cur_target_dir).opkg $(mkfs_cur_target_dir).conf
+endif
 	$(call prepare_rootfs,$(mkfs_cur_target_dir),$(TOPDIR)/files)
 
 $(KDIR)/root.%: kernel_prepare
@@ -481,10 +495,10 @@ endef
 ifdef IB
   DEVICE_CHECK_PROFILE = $(filter $(1),DEVICE_$(PROFILE) $(PROFILE))
 else
-  DEVICE_CHECK_PROFILE = $(CONFIG_TARGET_$(if $(CONFIG_TARGET_MULTI_PROFILE),DEVICE_)$(call target_conf,$(BOARD)$(if $(SUBTARGET),_$(SUBTARGET)))_$(1))
+  DEVICE_CHECK_PROFILE = $(CONFIG_TARGET_$(if $(CONFIG_TARGET_MULTI_PROFILE),DEVICE_)$(call target_conf,$(BOARD)_$(SUBTARGET))_$(1))
 endif
 
-DEVICE_EXTRA_PACKAGES = $(call qstrip,$(CONFIG_TARGET_DEVICE_PACKAGES_$(call target_conf,$(BOARD)$(if $(SUBTARGET),_$(SUBTARGET)))_DEVICE_$(1)))
+DEVICE_EXTRA_PACKAGES = $(call qstrip,$(CONFIG_TARGET_DEVICE_PACKAGES_$(call target_conf,$(BOARD)_$(SUBTARGET))_DEVICE_$(1)))
 
 define merge_packages
   $(1) :=
@@ -562,7 +576,7 @@ define Device/Build/initramfs
 	DEVICE_TITLE="$$(DEVICE_TITLE)" \
 	DEVICE_PACKAGES="$$(DEVICE_PACKAGES)" \
 	TARGET="$(BOARD)" \
-	SUBTARGET="$(if $(SUBTARGET),$(SUBTARGET),generic)" \
+	SUBTARGET="$(SUBTARGET)" \
 	VERSION_NUMBER="$(VERSION_NUMBER)" \
 	VERSION_CODE="$(VERSION_CODE)" \
 	SUPPORTED_DEVICES="$$(SUPPORTED_DEVICES)" \
@@ -586,7 +600,7 @@ define Device/Build/dtb
   $(KDIR)/image-$(1).dtb: FORCE
 	$(call Image/BuildDTB,$(strip $(2))/$(strip $(3)).dts,$$@)
 
-  image_prepare: $(KDIR)/image-$(1).dtb
+  compile-dtb: $(KDIR)/image-$(1).dtb
   endif
 
 endef
@@ -597,7 +611,7 @@ define Device/Build/dtbo
   $(KDIR)/image-$(1).dtbo: FORCE
 	$(call Image/BuildDTBO,$(strip $(2))/$(strip $(3)).dtso,$$@)
 
-  image_prepare: $(KDIR)/image-$(1).dtbo
+  compile-dtb: $(KDIR)/image-$(1).dtbo
   endif
 
 endef
@@ -696,7 +710,7 @@ define Device/Build/image
 	DEVICE_TITLE="$(DEVICE_TITLE)" \
 	DEVICE_PACKAGES="$(DEVICE_PACKAGES)" \
 	TARGET="$(BOARD)" \
-	SUBTARGET="$(if $(SUBTARGET),$(SUBTARGET),generic)" \
+	SUBTARGET="$(SUBTARGET)" \
 	VERSION_NUMBER="$(VERSION_NUMBER)" \
 	VERSION_CODE="$(VERSION_CODE)" \
 	SUPPORTED_DEVICES="$(SUPPORTED_DEVICES)" \
@@ -750,7 +764,7 @@ define Device/Build/artifact
 	DEVICE_TITLE="$(DEVICE_TITLE)" \
 	DEVICE_PACKAGES="$(DEVICE_PACKAGES)" \
 	TARGET="$(BOARD)" \
-	SUBTARGET="$(if $(SUBTARGET),$(SUBTARGET),generic)" \
+	SUBTARGET="$(SUBTARGET)" \
 	VERSION_NUMBER="$(VERSION_NUMBER)" \
 	VERSION_CODE="$(VERSION_CODE)" \
 	SUPPORTED_DEVICES="$(SUPPORTED_DEVICES)" \
@@ -845,18 +859,20 @@ define BuildImage
   download:
   prepare:
   compile:
+  compile-dtb:
   clean:
   image_prepare:
 
   ifeq ($(IB),)
-    .PHONY: download prepare compile clean image_prepare kernel_prepare install install-images
+    .PHONY: download prepare compile compile-dtb clean image_prepare kernel_prepare install install-images
     compile:
 		$(call Build/Compile)
 
     clean:
 		$(call Build/Clean)
 
-    image_prepare: compile
+    compile-dtb:
+    image_prepare: compile compile-dtb
 		mkdir -p $(BIN_DIR) $(KDIR)/tmp
 		rm -rf $(BUILD_DIR)/json_info_files
 		$(call Image/Prepare)

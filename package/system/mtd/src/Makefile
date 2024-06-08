@@ -15,11 +15,12 @@ obj.bcm53xx = $(obj.brcm) $(obj.seama)
 obj.mediatek = $(obj.brcm)
 obj.bcm63xx = imagetag.o
 obj.bmips = imagetag.o
-obj.ramips = $(obj.seama) $(obj.tpl) $(obj.wrg) linksys_bootcount.o
+obj.ramips = $(obj.brcm) $(obj.seama) $(obj.tpl) $(obj.wrg) linksys_bootcount.o
 obj.mvebu = linksys_bootcount.o
 obj.kirkwood = linksys_bootcount.o
 obj.ipq806x = linksys_bootcount.o
 obj.ipq40xx = linksys_bootcount.o
+obj.qualcommax = linksys_bootcount.o
 
 ifdef FIS_SUPPORT
   obj += fis.o

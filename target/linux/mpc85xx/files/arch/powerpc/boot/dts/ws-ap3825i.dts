@@ -4,6 +4,7 @@
 
 #include <dt-bindings/gpio/gpio.h>
 #include <dt-bindings/input/input.h>
+#include <dt-bindings/leds/common.h>
 
 / {
 	model = "Extreme Networks WS-AP3825i";
@@ -47,12 +48,14 @@
 
 		led_power_green: power_green {
 			gpios = <&spi_gpio 0 GPIO_ACTIVE_HIGH>;
-			label = "green:power";
+			function = LED_FUNCTION_POWER;
+			color = <LED_COLOR_ID_GREEN>;
 		};
 
 		led_power_red: power_red {
 			gpios = <&spi_gpio 1 GPIO_ACTIVE_HIGH>;
-			label = "red:power";
+			function = LED_FUNCTION_POWER;
+			color = <LED_COLOR_ID_RED>;
 		};
 
 		lan1_red {
@@ -312,7 +315,7 @@
 		#size-cells = <2>;
 		ranges;
 
-		cpu1-bootpage@e000000 {
+		cpu1-bootpage@ff00000 {
 			/* Reserve upper 1 MB for second-core-bootpage */
 			reg = <0x0 0xff00000 0x0 0x100000>;
 		};

@@ -407,11 +407,11 @@ static void ag71xx_dma_reset(struct ag71xx *ag)
 			 FIFO_CFG4_VT)
 
 #define FIFO_CFG5_INIT	(FIFO_CFG5_DE | FIFO_CFG5_DV | FIFO_CFG5_FC | \
-			 FIFO_CFG5_CE | FIFO_CFG5_LO | FIFO_CFG5_OK | \
-			 FIFO_CFG5_MC | FIFO_CFG5_BC | FIFO_CFG5_DR | \
-			 FIFO_CFG5_CF | FIFO_CFG5_PF | FIFO_CFG5_VT | \
-			 FIFO_CFG5_LE | FIFO_CFG5_FT | FIFO_CFG5_16 | \
-			 FIFO_CFG5_17 | FIFO_CFG5_SF)
+			 FIFO_CFG5_CE | FIFO_CFG5_LM | FIFO_CFG5_LO | \
+			 FIFO_CFG5_OK | FIFO_CFG5_MC | FIFO_CFG5_BC | \
+			 FIFO_CFG5_DR | FIFO_CFG5_CF | FIFO_CFG5_UO | \
+			 FIFO_CFG5_VT | FIFO_CFG5_LE | FIFO_CFG5_FT | \
+			 FIFO_CFG5_UC | FIFO_CFG5_SF)
 
 static void ag71xx_hw_stop(struct ag71xx *ag)
 {
@@ -1319,7 +1319,6 @@ static int ag71xx_rx_packets(struct ag71xx *ag, int limit)
 	int ring_mask = BIT(ring->order) - 1;
 	int ring_size = BIT(ring->order);
 	struct list_head rx_list;
-	struct sk_buff *next;
 	struct sk_buff *skb;
 	int done = 0;
 
@@ -1379,7 +1378,7 @@ next:
 
 	ag71xx_ring_rx_refill(ag);
 
-	list_for_each_entry_safe(skb, next, &rx_list, list)
+	list_for_each_entry(skb, &rx_list, list)
 		skb->protocol = eth_type_trans(skb, dev);
 	netif_receive_skb_list(&rx_list);
 
@@ -1698,11 +1697,7 @@ static int ag71xx_probe(struct platform_device *pdev)
 			break;
 		}
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(5,19,0)
 	netif_napi_add_weight(dev, &ag->napi, ag71xx_poll, AG71XX_NAPI_WEIGHT);
-#else
-	netif_napi_add(dev, &ag->napi, ag71xx_poll, AG71XX_NAPI_WEIGHT);
-#endif
 
 	ag71xx_dump_regs(ag);
 

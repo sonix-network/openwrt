@@ -4,6 +4,7 @@
 
 #include <dt-bindings/gpio/gpio.h>
 #include <dt-bindings/input/input.h>
+#include <dt-bindings/leds/common.h>
 
 / {
 	aliases {
@@ -30,7 +31,8 @@
 		};
 
 		usb {
-			label = "green:usb";
+			function = LED_FUNCTION_USB;
+			color = <LED_COLOR_ID_GREEN>;
 			gpios = <&ath9k0 3 GPIO_ACTIVE_LOW>;
 			trigger-sources = <&usb_ohci_port>, <&usb_ehci_port>;
 			linux,default-trigger = "usbport";
@@ -196,7 +198,7 @@
 &pcie0 {
 	status = "okay";
 
-	ath9k0: wifi@0,11 {
+	ath9k0: wifi@11,0 {
 		compatible = "pci168c,0029";
 		reg = <0x8800 0 0 0 0>;
 		qca,no-eeprom;
@@ -204,7 +206,7 @@
 		gpio-controller;
 	};
 
-	ath9k1: wifi@0,12 {
+	ath9k1: wifi@12,0 {
 		compatible = "pci168c,0029";
 		reg = <0x9000 0 0 0 0>;
 		qca,no-eeprom;

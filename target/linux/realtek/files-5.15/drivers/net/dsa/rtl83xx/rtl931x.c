@@ -516,8 +516,8 @@ void rtl931x_set_receive_management_action(int port, rma_ctrl_t type, action_typ
 	case PTP_ETH2:
 		sw_w32_mask(3, value, RTL931X_RMA_PTP_CTRL + (port << 2));
 	break;
-	case LLTP:
-		sw_w32_mask(7 << ((port % 10) * 3), value << ((port % 10) * 3), RTL931X_RMA_LLTP_CTRL + ((port / 10) << 2));
+	case LLDP:
+		sw_w32_mask(7 << ((port % 10) * 3), value << ((port % 10) * 3), RTL931X_RMA_LLDP_CTRL + ((port / 10) << 2));
 	break;
 	case EAPOL:
 		sw_w32_mask(7 << ((port % 10) * 3), value << ((port % 10) * 3), RTL931X_RMA_EAPOL_CTRL + ((port / 10) << 2));
@@ -827,9 +827,9 @@ static void rtl931x_vlan_fwd_on_inner(int port, bool is_set)
 {
 	/* Always set all tag modes to fwd based on either inner or outer tag */
 	if (is_set)
-		sw_w32_mask(0, 0xf, RTL931X_VLAN_PORT_FWD + (port << 2));
-	else
 		sw_w32_mask(0xf, 0, RTL931X_VLAN_PORT_FWD + (port << 2));
+	else
+		sw_w32_mask(0, 0xf, RTL931X_VLAN_PORT_FWD + (port << 2));
 }
 
 static void rtl931x_vlan_profile_setup(int profile)
@@ -1586,9 +1586,9 @@ static void rtl931x_led_init(struct rtl838x_switch_priv *priv)
 		sw_w32_mask(0x3 << pos, v << pos, RTL931X_LED_PORT_NUM_CTRL(i));
 
 		if (priv->ports[i].phy_is_integrated)
-		pm_fiber |= BIT_ULL(i);
-			else
-		pm_copper |= BIT_ULL(i);
+			pm_fiber |= BIT_ULL(i);
+		else
+			pm_copper |= BIT_ULL(i);
 
 		set = priv->ports[i].led_set;
 		sw_w32_mask(0, set << pos, RTL931X_LED_PORT_COPR_SET_SEL_CTRL(i));

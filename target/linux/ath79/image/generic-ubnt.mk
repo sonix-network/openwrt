@@ -18,6 +18,18 @@ define Device/ubnt_aircube-isp
 endef
 TARGET_DEVICES += ubnt_aircube-isp
 
+define Device/ubnt_amplifi-router-hd
+  IMAGE_SIZE := 11264k
+  UBNT_BOARD := AFi-R-HD
+  UBNT_TYPE := AFi-R
+  UBNT_VERSION := 3.6.3
+  SOC := qca9563
+  DEVICE_MODEL := AmpliFi Router HD
+  UBNT_CHIP := qca956x
+  DEVICE_PACKAGES += kmod-ath10k-ct-smallbuffers ath10k-firmware-qca988x-ct kmod-usb2
+endef
+TARGET_DEVICES += ubnt_amplifi-router-hd
+
 define Device/ubnt_bullet-ac
   $(Device/ubnt-2wa)
   DEVICE_MODEL := Bullet AC
@@ -28,6 +40,9 @@ TARGET_DEVICES += ubnt_bullet-ac
 define Device/ubnt_bullet-m-xw
   $(Device/ubnt-xw)
   DEVICE_MODEL := Bullet M
+  DEVICE_ALT0_VENDOR := Ubiquiti
+  DEVICE_ALT0_MODEL := Rocket M
+  DEVICE_ALT0_VARIANT := XW
   DEVICE_PACKAGES += rssileds
   SUPPORTED_DEVICES += bullet-m-xw
 endef
@@ -62,6 +77,14 @@ define Device/ubnt_litebeam-ac-gen2
 endef
 TARGET_DEVICES += ubnt_litebeam-ac-gen2
 
+define Device/ubnt_litebeam-m5-xw
+  $(Device/ubnt-xw)
+  DEVICE_MODEL := LiteBeam M5
+  SUPPORTED_DEVICES += lbe-m5
+  DEVICE_PACKAGES := -kmod-usb2
+endef
+TARGET_DEVICES += ubnt_litebeam-m5-xw
+
 define Device/ubnt_nanobeam-ac
   $(Device/ubnt-wa)
   DEVICE_MODEL := NanoBeam AC
@@ -87,14 +110,6 @@ define Device/ubnt_nanobeam-ac-xc
 endef
 TARGET_DEVICES += ubnt_nanobeam-ac-xc
 
-define Device/ubnt_nanobeam-m5-xw
-  $(Device/ubnt-xw)
-  DEVICE_MODEL := NanoBeam M5
-  DEVICE_PACKAGES += rssileds
-  SUPPORTED_DEVICES += loco-m-xw
-endef
-TARGET_DEVICES += ubnt_nanobeam-m5-xw
-
 define Device/ubnt_nanostation-ac
   $(Device/ubnt-wa)
   DEVICE_MODEL := Nanostation AC
@@ -112,8 +127,17 @@ TARGET_DEVICES += ubnt_nanostation-ac-loco
 define Device/ubnt_nanostation-loco-m-xw
   $(Device/ubnt-xw)
   DEVICE_MODEL := Nanostation Loco M
-  DEVICE_PACKAGES += rssileds
-  SUPPORTED_DEVICES += loco-m-xw
+  DEVICE_PACKAGES += rssileds -kmod-usb2
+  DEVICE_ALT0_VENDOR := Ubiquiti
+  DEVICE_ALT0_MODEL := AirGrid M5 HP
+  DEVICE_ALT0_VARIANT := XW
+  DEVICE_ALT1_VENDOR := Ubiquiti
+  DEVICE_ALT1_MODEL := PowerBeam M5 300
+  DEVICE_ALT1_VARIANT := XW
+  DEVICE_ALT2_VENDOR := Ubiquiti
+  DEVICE_ALT2_MODEL := NanoBeam M5
+  DEVICE_ALT2_VARIANT := XW
+  SUPPORTED_DEVICES += loco-m-xw nanostation-m-xw ubnt,nanobeam-m5-xw
 endef
 TARGET_DEVICES += ubnt_nanostation-loco-m-xw
 
@@ -229,6 +253,13 @@ define Device/ubnt_routerstation-pro
 endef
 TARGET_DEVICES += ubnt_routerstation-pro
 
+define Device/ubnt_uk-ultra
+  $(Device/ubnt_unifiac)
+  DEVICE_MODEL := UniFi Swiss Army Knife Ultra
+  DEVICE_PACKAGES += rssileds -swconfig
+endef
+TARGET_DEVICES += ubnt_uk-ultra
+
 define Device/ubnt_unifi-ap
   $(Device/ubnt-bz)
   DEVICE_MODEL := UniFi AP
@@ -243,13 +274,6 @@ define Device/ubnt_unifi-ap-lr
   SUPPORTED_DEVICES += unifi ubnt,unifi ubnt,unifi-ap
 endef
 TARGET_DEVICES += ubnt_unifi-ap-lr
-
-define Device/ubnt_unifiac
-  DEVICE_VENDOR := Ubiquiti
-  SOC := qca9563
-  IMAGE_SIZE := 15488k
-  DEVICE_PACKAGES := kmod-ath10k-ct ath10k-firmware-qca988x-ct
-endef
 
 define Device/ubnt_unifiac-lite
   $(Device/ubnt_unifiac)

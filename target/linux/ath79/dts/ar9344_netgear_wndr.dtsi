@@ -4,6 +4,7 @@
 
 #include <dt-bindings/gpio/gpio.h>
 #include <dt-bindings/input/input.h>
+#include <dt-bindings/leds/common.h>
 #include <dt-bindings/mtd/partitions/uimage.h>
 
 / {
@@ -48,12 +49,14 @@
 		pinctrl-0 = <&enable_gpio_11>;
 
 		led_power_green: power_green {
-			label = "green:power";
+			function = LED_FUNCTION_POWER;
+			color = <LED_COLOR_ID_GREEN>;
 			gpios = <&gpio 0 GPIO_ACTIVE_LOW>;
 		};
 
 		led_power_amber: power_amber {
-			label = "amber:power";
+			function = LED_FUNCTION_POWER;
+			color = <LED_COLOR_ID_AMBER>;
 			gpios = <&gpio 2 GPIO_ACTIVE_LOW>;
 			default-state = "keep";
 		};
@@ -71,12 +74,14 @@
 		};
 
 		wps_green {
-			label = "green:wps";
+			function = LED_FUNCTION_WPS;
+			color = <LED_COLOR_ID_GREEN>;
 			gpios = <&gpio 16 GPIO_ACTIVE_LOW>;
 		};
 
 		wps_amber {
-			label = "amber:wps";
+			function = LED_FUNCTION_WPS;
+			color = <LED_COLOR_ID_AMBER>;
 			gpios = <&gpio 17 GPIO_ACTIVE_LOW>;
 		};
 	};
@@ -90,7 +95,7 @@
 			#address-cells = <1>;
 			#size-cells = <1>;
 
-			ubi@ac0000 {
+			ubi@0 {
 				label = "ubi";
 				reg = <0x0 0x7500000>;
 			};
@@ -171,22 +176,23 @@
 			reg = <0x3c0000 0x300000>;
 		};
 
-		kernel@6c0000 {
-			label = "kernel";
-			reg = <0x6c0000 0x400000>;
-		};
-
-		ubiconcat0: partition@ac0000 {
-			label = "ubiconcat0";
-			reg = <0xac0000 0x1500000>;
-		};
-
 		partition@6c0000 {
 			label = "firmware";
 			reg = <0x6c0000 0x1900000>;
-			compatible = "openwrt,uimage", "denx,uimage";
-			openwrt,ih-magic = <0x33373033>;
-			openwrt,ih-type = <IH_TYPE_FILESYSTEM>;
+
+			compatible = "fixed-partitions";
+			#address-cells = <1>;
+			#size-cells = <1>;
+
+			kernel@0 {
+				label = "kernel";
+				reg = <0x0 0x400000>;
+			};
+
+			ubiconcat0: partition@400000 {
+				label = "ubiconcat0";
+				reg = <0x400000 0x1500000>;
+			};
 		};
 
 		partition@1fc0000 {

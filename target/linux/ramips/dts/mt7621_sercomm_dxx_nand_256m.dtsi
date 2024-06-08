@@ -19,22 +19,19 @@
 	leds {
 		compatible = "gpio-leds";
 
-		led-1 {
-			label = "blue:wan";
+		led-0 {
 			color = <LED_COLOR_ID_BLUE>;
 			function = LED_FUNCTION_WAN;
 			gpios = <&gpio 13 GPIO_ACTIVE_HIGH>;
 		};
 
-		led_status_green: led-0 {
-			label = "green:status";
+		led_status_green: led-1 {
 			color = <LED_COLOR_ID_GREEN>;
 			function = LED_FUNCTION_STATUS;
 			gpios = <&gpio 15 GPIO_ACTIVE_HIGH>;
 		};
 
 		led_status_red: led-2 {
-			label = "red:status";
 			color = <LED_COLOR_ID_RED>;
 			function = LED_FUNCTION_STATUS;
 			gpios = <&gpio 16 GPIO_ACTIVE_HIGH>;
@@ -44,13 +41,13 @@
 	keys {
 		compatible = "gpio-keys";
 
-		wps {
+		button-0 {
 			label = "wps";
 			gpios = <&gpio 11 GPIO_ACTIVE_HIGH>;
 			linux,code = <KEY_WPS_BUTTON>;
 		};
 
-		reset {
+		button-1 {
 			label = "reset";
 			gpios = <&gpio 14 GPIO_ACTIVE_LOW>;
 			linux,code = <KEY_RESTART>;
@@ -97,7 +94,7 @@
 			read-only;
 		};
 
-		factory: partition@200000 {
+		partition@200000 {
 			label = "Factory";
 			reg = <0x200000 0x100000>;
 			sercomm,scpart-id = <2>;
@@ -211,10 +208,8 @@
 	phy-handle = <&ethphy0>;
 };
 
-&mdio {
-	ethphy0: ethernet-phy@0 {
-		reg = <0>;
-	};
+&ethphy0 {
+	/delete-property/ interrupts;
 };
 
 &switch0 {

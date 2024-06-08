@@ -4,6 +4,7 @@
 
 #include <dt-bindings/gpio/gpio.h>
 #include <dt-bindings/input/input.h>
+#include <dt-bindings/leds/common.h>
 
 / {
 	compatible = "ruckus,gd11", "qca,ar7161";
@@ -40,13 +41,15 @@
 		};
 
 		led_power_green: power-green {
-			label = "green:power";
+			function = LED_FUNCTION_POWER;
+			color = <LED_COLOR_ID_GREEN>;
 			gpios = <&gpio 0 GPIO_ACTIVE_HIGH>;
 			default-state = "on";
 		};
 
 		led_power_red: power-red {
-			label = "red:power";
+			function = LED_FUNCTION_POWER;
+			color = <LED_COLOR_ID_RED>;
 			gpios = <&gpio 1 GPIO_ACTIVE_HIGH>;
 			panic-indicator;
 		};
@@ -131,7 +134,7 @@
 &pcie0 {
 	status = "okay";
 
-	ath9k0: wifi@0,11 { /* 2.4 GHz */
+	ath9k0: wifi@11,0 { /* 2.4 GHz */
 		compatible = "pci168c,0029";
 		reg = <0x8800 0 0 0 0>;
 		nvmem-cells = <&macaddr_bdata_60>;
@@ -140,7 +143,7 @@
 		gpio-controller;
 	};
 
-	ath9k1: wifi@0,12 { /* 5 GHz */
+	ath9k1: wifi@12,0 { /* 5 GHz */
 		compatible = "pci168c,0029";
 		reg = <0x9000 0 0 0 0>;
 		nvmem-cells = <&macaddr_bdata_76>;

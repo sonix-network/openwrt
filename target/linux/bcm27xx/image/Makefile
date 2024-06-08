@@ -15,13 +15,19 @@ endef
 
 ### Image scripts ###
 define Build/boot-common
+	echo $(IMG_PART_SIGNATURE) > $@-partuuid.txt
+	sed \
+		-e 's#@ROOT@#PARTUUID=$(IMG_PART_SIGNATURE)-02#g' \
+		cmdline.txt > $@-cmdline.txt
+
 	rm -f $@.boot
 	mkfs.fat -n boot -C $@.boot $(FAT32_BLOCKS)
 	mcopy -i $@.boot $(KDIR)/COPYING.linux ::
 	mcopy -i $@.boot $(KDIR)/LICENCE.broadcom ::
-	mcopy -i $@.boot cmdline.txt ::
+	mcopy -i $@.boot $@-cmdline.txt ::cmdline.txt
 	mcopy -i $@.boot config.txt ::
 	mcopy -i $@.boot distroconfig.txt ::
+	mcopy -i $@.boot $@-partuuid.txt ::partuuid.txt
 	mcopy -i $@.boot $(IMAGE_KERNEL) ::$(KERNEL_IMG)
 	$(foreach dts,$(shell echo $(DEVICE_DTS)),mcopy -i $@.boot $(DTS_DIR)/$(dts).dtb ::;)
 	mmd -i $@.boot ::/overlays
@@ -49,6 +55,7 @@ define Build/boot-2711
 endef
 
 define Build/sdcard-img
+	SIGNATURE="$(IMG_PART_SIGNATURE)" \
 	./gen_rpi_sdcard_img.sh $@ $@.boot $(IMAGE_ROOTFS) \
 		$(CONFIG_TARGET_KERNEL_PARTSIZE) $(CONFIG_TARGET_ROOTFS_PARTSIZE)
 endef
@@ -170,6 +177,23 @@ define Device/rpi-4
 endef
 ifeq ($(SUBTARGET),bcm2711)
   TARGET_DEVICES += rpi-4
+endif
+
+define Device/rpi-5
+  DEVICE_MODEL := 5
+  KERNEL_IMG := kernel_2712.img
+  DEVICE_DTS := broadcom/bcm2712-rpi-5-b
+  SUPPORTED_DEVICES := raspberrypi,5-model-b
+  DEVICE_PACKAGES := \
+	cypress-firmware-43455-sdio \
+	brcmfmac-nvram-43455-sdio \
+	kmod-brcmfmac wpad-basic-mbedtls \
+	kmod-hwmon-pwmfan kmod-thermal
+  IMAGE/sysupgrade.img.gz := boot-common | sdcard-img | gzip | append-metadata
+  IMAGE/factory.img.gz := boot-common | sdcard-img | gzip
+endef
+ifeq ($(SUBTARGET),bcm2712)
+  TARGET_DEVICES += rpi-5
 endif
 
 $(eval $(call BuildImage))

@@ -6,9 +6,9 @@ include ./common-yuncore.mk
 include ./common-ubnt.mk
 
 DEVICE_VARS += ADDPATTERN_ID ADDPATTERN_VERSION
-DEVICE_VARS += SEAMA_SIGNATURE SEAMA_MTDBLOCK
 DEVICE_VARS += KERNEL_INITRAMFS_PREFIX DAP_SIGNATURE
 DEVICE_VARS += EDIMAX_HEADER_MAGIC EDIMAX_HEADER_MODEL
+DEVICE_VARS += ELECOM_HWID
 DEVICE_VARS += MOXA_MAGIC MOXA_HWID
 DEVICE_VARS += OPENMESH_CE_TYPE ZYXEL_MODEL_STRING
 DEVICE_VARS += SUPPORTED_TELTONIKA_DEVICES
@@ -193,23 +193,6 @@ define Build/zyxel-tar-bz2
 	rm -rf $@.tmp
 endef
 
-define Device/seama
-  KERNEL := kernel-bin | append-dtb | relocate-kernel | lzma
-  KERNEL_INITRAMFS := $$(KERNEL) | seama
-  IMAGES += factory.bin
-  SEAMA_MTDBLOCK := 1
-
-  # 64 bytes offset:
-  # - 28 bytes seama_header
-  # - 36 bytes of META data (4-bytes aligned)
-  IMAGE/default := append-kernel | pad-offset $$$$(BLOCKSIZE) 64 | append-rootfs
-  IMAGE/sysupgrade.bin := $$(IMAGE/default) | seama | pad-rootfs | \
-	check-size | append-metadata
-  IMAGE/factory.bin := $$(IMAGE/default) | pad-rootfs -x 64 | seama | \
-	seama-seal | check-size
-  SEAMA_SIGNATURE :=
-endef
-
 
 define Device/8dev_carambola2
   SOC := ar9331
@@ -220,6 +203,16 @@ define Device/8dev_carambola2
   SUPPORTED_DEVICES += carambola2
 endef
 TARGET_DEVICES += 8dev_carambola2
+
+define Device/8dev_carambola3
+  SOC := qca9531
+  DEVICE_VENDOR := 8devices
+  DEVICE_MODEL := Carambola3
+  DEVICE_PACKAGES := kmod-usb2
+  IMAGE_SIZE := 32768k
+  SUPPORTED_DEVICES += carambola3
+endef
+TARGET_DEVICES += 8dev_carambola3
 
 define Device/8dev_lima
   SOC := qca9531
@@ -845,6 +838,16 @@ define Device/comfast_cf-e560ac
 endef
 TARGET_DEVICES += comfast_cf-e560ac
 
+define Device/comfast_cf-ew71-v2
+  SOC := qca9531
+  DEVICE_VENDOR := COMFAST
+  DEVICE_MODEL := CF-EW71
+  DEVICE_VARIANT := v2
+  DEVICE_PACKAGES := kmod-usb2 -uboot-envtools -swconfig
+  IMAGE_SIZE := 16192k
+endef
+TARGET_DEVICES += comfast_cf-ew71-v2
+
 define Device/comfast_cf-ew72
   SOC := qca9531
   DEVICE_VENDOR := COMFAST
@@ -941,6 +944,22 @@ define Device/compex_wpj563
 endef
 TARGET_DEVICES += compex_wpj563
 
+define Device/dell_apl26-0ae
+  SOC := qca9550
+  DEVICE_VENDOR := Dell
+  DEVICE_MODEL := SonicPoint
+  DEVICE_VARIANT := ACe (APL26-0AE)
+  DEVICE_ALT0_VENDOR := SonicWall
+  DEVICE_ALT0_MODEL := SonicPoint
+  DEVICE_ALT0_VARIANT := ACe (APL26-0AE)
+  DEVICE_PACKAGES := ath10k-firmware-qca988x-ct kmod-ath10k-ct kmod-usb2
+  KERNEL_SIZE := 5952k
+  IMAGE_SIZE := 31680k
+  IMAGE/sysupgrade.bin = append-kernel | pad-to $$$$(BLOCKSIZE) | \
+	append-rootfs | pad-rootfs | check-size | append-metadata
+endef
+TARGET_DEVICES += dell_apl26-0ae
+
 define Device/devolo_dlan-pro-1200plus-ac
   SOC := ar9344
   DEVICE_VENDOR := devolo
@@ -1006,21 +1025,35 @@ define Device/devolo_magic-2-wifi
 endef
 TARGET_DEVICES += devolo_magic-2-wifi
 
-define Device/dlink_covr-p2500-a1
+define Device/dlink_covr
   $(Device/loader-okli-uimage)
   SOC := qca9563
   DEVICE_VENDOR := D-Link
-  DEVICE_MODEL := COVR-P2500
-  DEVICE_VARIANT := A1
   DEVICE_PACKAGES := kmod-ath10k-ct ath10k-firmware-qca9888-ct
   LOADER_FLASH_OFFS := 0x050000
   LOADER_KERNEL_MAGIC := 0x68737173
   KERNEL := kernel-bin | append-dtb | lzma | uImage lzma -M 0x68737173
   IMAGE_SIZE := 14528k
-  IMAGES += factory.bin recovery.bin
   IMAGE/recovery.bin := append-kernel | pad-to $$$$(BLOCKSIZE) | \
 	append-rootfs | pad-rootfs | check-size | pad-to 14528k | \
 	append-loader-okli-uimage $(1) | pad-to 15616k
+endef
+
+define Device/dlink_covr-c1200-a1
+  $(Device/dlink_covr)
+  DEVICE_MODEL := COVR-C1200
+  DEVICE_VARIANT := A1
+  IMAGES += factory.bin
+  IMAGE/factory.bin := $$(IMAGE/recovery.bin) | \
+	dlink-sge-signature COVR-C1200 | dlink-sge-image COVR-C1200
+endef
+TARGET_DEVICES += dlink_covr-c1200-a1
+
+define Device/dlink_covr-p2500-a1
+  $(Device/dlink_covr)
+  DEVICE_MODEL := COVR-P2500
+  DEVICE_VARIANT := A1
+  IMAGES += factory.bin recovery.bin
   IMAGE/factory.bin := $$(IMAGE/recovery.bin) | \
 	dlink-sge-image COVR-P2500 | dlink-sge-signature COVR-P2500
 endef
@@ -1052,22 +1085,6 @@ define Device/dlink_dap-1365-a1
   DAP_SIGNATURE := HONEYBEE-FIRMWARE-DAP-1365
 endef
 TARGET_DEVICES += dlink_dap-1365-a1
-
-define Device/dlink_dap-1720-a1
-  $(Device/seama)
-  SOC := qca9563
-  DEVICE_VENDOR := D-Link
-  DEVICE_MODEL := DAP-1720
-  DEVICE_VARIANT := A1
-  DEVICE_PACKAGES := rssileds -swconfig \
-	kmod-ath10k-ct-smallbuffers ath10k-firmware-qca988x-ct
-  SEAMA_SIGNATURE := wapac28_dlink.2015_dap1720
-  IMAGE_SIZE := 15872k
-  IMAGES += recovery.bin
-  IMAGE/recovery.bin := $$(IMAGE/default) | pad-rootfs -x 64 | seama | \
-	seama-seal | check-size
-endef
-TARGET_DEVICES += dlink_dap-1720-a1
 
 define Device/dlink_dap-2xxx
   IMAGES += factory.img
@@ -1281,40 +1298,39 @@ define Device/dlink_dir-842-c3
 endef
 TARGET_DEVICES += dlink_dir-842-c3
 
-define Device/dlink_dir-859-ax
-  $(Device/seama)
-  SOC := qca9563
-  DEVICE_VENDOR := D-Link
-  DEVICE_MODEL := DIR-859
-  IMAGE_SIZE := 15872k
-  DEVICE_PACKAGES := kmod-usb2 kmod-ath10k-ct-smallbuffers ath10k-firmware-qca988x-ct
-  SEAMA_SIGNATURE := wrgac37_dlink.2013gui_dir859
+define Device/elecom_wab
+  DEVICE_VENDOR := ELECOM
+  IMAGE_SIZE := 14336k
+  IMAGES += factory.bin
+  IMAGE/factory.bin := append-kernel | pad-to $$$$(BLOCKSIZE) | append-rootfs | \
+	pad-rootfs | check-size | elx-header $$$$(ELECOM_HWID) 8844A2D168B45A2D
+  DEVICE_PACKAGES := kmod-ath10k-ct ath10k-firmware-qca988x-ct kmod-gpio-beeper \
+	kmod-usb2 kmod-usb-ledtrig-usbport
 endef
 
-define Device/dlink_dir-859-a1
-  $(Device/dlink_dir-859-ax)
-  DEVICE_VARIANT := A1
+define Device/elecom_wab-i1750-ps
+  $(Device/elecom_wab)
+  SOC := qca9558
+  DEVICE_MODEL := WAB-I1750-PS
+  ELECOM_HWID := 0107000d
 endef
-TARGET_DEVICES += dlink_dir-859-a1
+TARGET_DEVICES += elecom_wab-i1750-ps
 
-define Device/dlink_dir-859-a3
-  $(Device/dlink_dir-859-ax)
-  DEVICE_VARIANT := A3
+define Device/elecom_wab-s1167-ps
+  $(Device/elecom_wab)
+  SOC := qca9557
+  DEVICE_MODEL := WAB-S1167-PS
+  ELECOM_HWID := 0107000c
 endef
-TARGET_DEVICES += dlink_dir-859-a3
+TARGET_DEVICES += elecom_wab-s1167-ps
 
-define Device/dlink_dir-869-a1
-  $(Device/seama)
-  SOC := qca9563
-  DEVICE_VENDOR := D-Link
-  DEVICE_MODEL := DIR-869
-  DEVICE_VARIANT := A1
-  IMAGE_SIZE := 15872k
-  DEVICE_PACKAGES := kmod-usb2 kmod-ath10k-ct-smallbuffers ath10k-firmware-qca988x-ct
-  SEAMA_SIGNATURE := wrgac54_dlink.2015_dir869
-  SUPPORTED_DEVICES += dir-869-a1
+define Device/elecom_wab-s600-ps
+  $(Device/elecom_wab)
+  SOC := qca9557
+  DEVICE_MODEL := WAB-S600-PS
+  ELECOM_HWID := 01070028
 endef
-TARGET_DEVICES += dlink_dir-869-a1
+TARGET_DEVICES += elecom_wab-s600-ps
 
 define Device/elecom_wrc-1750ghbk2-i
   SOC := qca9563
@@ -1538,17 +1554,28 @@ define Device/engenius_ews511ap
 endef
 TARGET_DEVICES += engenius_ews511ap
 
-define Device/engenius_ews660ap
+define Device/engenius_ews_dual_ap
   $(Device/senao_loader_okli)
   SOC := qca9558
   DEVICE_VENDOR := EnGenius
-  DEVICE_MODEL := EWS660AP
   DEVICE_PACKAGES := ath10k-firmware-qca988x-ct kmod-ath10k-ct
   IMAGE_SIZE := 11584k
   LOADER_FLASH_OFFS := 0x220000
+endef
+
+define Device/engenius_ews660ap
+  $(Device/engenius_ews_dual_ap)
+  DEVICE_MODEL := EWS660AP
   SENAO_IMGNAME := ar71xx-generic-ews660ap
 endef
 TARGET_DEVICES += engenius_ews660ap
+
+define Device/engenius_ens1750
+  $(Device/engenius_ews_dual_ap)
+  DEVICE_MODEL := ENS1750
+  SENAO_IMGNAME := ar71xx-generic-ens1750
+endef
+TARGET_DEVICES += engenius_ens1750
 
 define Device/enterasys_ws-ap3705i
   SOC := ar9344
@@ -1763,6 +1790,22 @@ define Device/hiwifi_hc6361
   IMAGE_SIZE := 16128k
 endef
 TARGET_DEVICES += hiwifi_hc6361
+
+define Device/huawei_ap5030dn
+  SOC := qca9550
+  DEVICE_VENDOR := Huawei
+  DEVICE_MODEL := AP5030DN
+  DEVICE_PACKAGES := ath10k-firmware-qca988x-ct kmod-ath10k-ct
+  LOADER_TYPE := bin
+  LOADER_FLASH_OFFS := 0x111DC0
+  KERNEL_SIZE := 15360k
+  IMAGE_SIZE := 30720k
+  COMPILE := loader-$(1).bin
+  COMPILE/loader-$(1).bin := loader-okli-compile | pad-to 64k | uImage none
+  KERNEL := kernel-bin | append-dtb | lzma | uImage lzma -M 0x4f4b4c49 | loader-okli $(1) 8128
+  KERNEL_INITRAMFS := kernel-bin | append-dtb | lzma | loader-kernel | uImage none
+endef
+TARGET_DEVICES += huawei_ap5030dn
 
 define Device/iodata_etg3-r
   SOC := ar9342

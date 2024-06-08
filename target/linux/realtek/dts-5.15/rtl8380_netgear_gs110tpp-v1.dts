@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 
-#include "rtl8380_netgear_gigabit_1xx.dtsi"
+#include "rtl8380_netgear_gigabit.dtsi"
 #include <dt-bindings/leds/common.h>
 
 / {
@@ -18,26 +18,27 @@
 		compatible = "gpio-leds";
 
 		led_status_red: led-0 {
-			label = "red:status";
 			color = <LED_COLOR_ID_RED>;
 			function = LED_FUNCTION_STATUS;
 			gpios = <&gpio1 31 GPIO_ACTIVE_LOW>;
 		};
 
 		led_status_green: led-1 {
-			label = "green:status";
 			color = <LED_COLOR_ID_GREEN>;
 			function = LED_FUNCTION_STATUS;
 			gpios = <&gpio1 32 GPIO_ACTIVE_LOW>;
 		};
 
 		led_status_blue: led-2 {
-			label = "blue:status";
 			color = <LED_COLOR_ID_BLUE>;
 			function = LED_FUNCTION_STATUS;
 			gpios = <&gpio1 34 GPIO_ACTIVE_LOW>;
 		};
 	};
+};
+
+&firmware {
+	openwrt,ih-magic = <0x4e474520>;
 };
 
 &uart1 {

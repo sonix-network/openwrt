@@ -147,6 +147,17 @@ define Device/comfast_cf-wr758ac-v2
 endef
 TARGET_DEVICES += comfast_cf-wr758ac-v2
 
+define Device/cudy_tr1200-v1
+  IMAGE_SIZE := 15872k
+  DEVICE_VENDOR := Cudy
+  DEVICE_MODEL := TR1200
+  DEVICE_VARIANT := v1
+  DEVICE_PACKAGES := kmod-usb2 kmod-usb-ohci kmod-usb-ledtrig-usbport \
+	kmod-mt7615e kmod-mt7663-firmware-ap
+  SUPPORTED_DEVICES += R46
+endef
+TARGET_DEVICES += cudy_tr1200-v1
+
 define Device/cudy_wr1000
   IMAGE_SIZE := 7872k
   IMAGES += factory.bin
@@ -493,7 +504,7 @@ define Device/ravpower_rp-wd009
   IMAGE_SIZE := 14272k
   DEVICE_VENDOR := RAVPower
   DEVICE_MODEL := RP-WD009
-  UBOOT_PATH := $(STAGING_DIR_IMAGE)/ravpower_rp-wd009-u-boot.bin
+  UBOOT_PATH := $(STAGING_DIR_IMAGE)/mt7628_ravpower_rp-wd009-u-boot.bin
   DEVICE_PACKAGES := kmod-mt76x0e kmod-usb2 kmod-usb-ohci \
 	kmod-sdhci-mt7620 kmod-i2c-mt7628 ravpower-mcu
   IMAGES += factory.bin
@@ -606,6 +617,21 @@ define Device/tplink_archer-c50-v6
 endef
 TARGET_DEVICES += tplink_archer-c50-v6
 
+define Device/tplink_archer-mr200-v5
+  $(Device/tplink-v2)
+  IMAGE_SIZE := 7872k
+  DEVICE_MODEL := Archer MR200
+  DEVICE_VARIANT := v5
+  TPLINK_FLASHLAYOUT := 8MLmtk
+  TPLINK_HWID := 0x20000005
+  TPLINK_HWREV := 0x5
+  TPLINK_HWREVADD := 0x5
+  DEVICE_PACKAGES := kmod-mt76x0e uqmi kmod-usb2 kmod-usb-serial-option
+  IMAGES := sysupgrade.bin tftp-recovery.bin
+  IMAGE/tftp-recovery.bin := pad-extra 128k | $$(IMAGE/factory.bin)
+endef
+TARGET_DEVICES += tplink_archer-mr200-v5
+
 define Device/tplink_re200-v2
   $(Device/tplink-safeloader)
   IMAGE_SIZE := 7808k
@@ -636,6 +662,16 @@ define Device/tplink_re200-v4
 endef
 TARGET_DEVICES += tplink_re200-v4
 
+define Device/tplink_re205-v3
+  $(Device/tplink-safeloader)
+  IMAGE_SIZE := 7808k
+  DEVICE_MODEL := RE205
+  DEVICE_VARIANT := v3
+  DEVICE_PACKAGES := kmod-mt76x0e
+  TPLINK_BOARD_ID := RE205-V3
+endef
+TARGET_DEVICES += tplink_re205-v3
+
 define Device/tplink_re220-v2
   $(Device/tplink-safeloader)
   IMAGE_SIZE := 7808k
@@ -665,6 +701,18 @@ define Device/tplink_re305-v3
   TPLINK_BOARD_ID := RE305-V3
 endef
 TARGET_DEVICES += tplink_re305-v3
+
+define Device/tplink_re365-v1
+  $(Device/tplink-safeloader)
+  DEVICE_MODEL := RE365
+  DEVICE_VARIANT := v1
+  DEVICE_PACKAGES := kmod-mt76x2
+  IMAGE/sysupgrade.bin := append-kernel | append-rootfs | pad-rootfs | check-size | append-metadata
+  IMAGE_SIZE := 7680k
+  KERNEL_SIZE := 6016k
+  TPLINK_BOARD_ID := RE365
+endef
+TARGET_DEVICES += tplink_re365-v1
 
 define Device/tplink_tl-mr3020-v3
   $(Device/tplink-v2)

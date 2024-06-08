@@ -294,7 +294,7 @@
 		};
 
 		gdma: gdma@2800 {
-			compatible = "ralink,mt7620a-gdma", "ralink,rt3883-gdma";
+			compatible = "ralink,rt3883-gdma";
 			reg = <0x2800 0x800>;
 
 			resets = <&sysc 14>;
@@ -490,8 +490,8 @@
 		compatible = "mediatek,mt7620-gsw";
 		reg = <0x10110000 0x8000>;
 
-		resets = <&sysc 23>;
-		reset-names = "esw";
+		resets = <&sysc 24>;
+		reset-names = "ephy";
 
 		interrupt-parent = <&intc>;
 		interrupts = <17>;

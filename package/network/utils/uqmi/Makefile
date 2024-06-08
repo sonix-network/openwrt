@@ -5,9 +5,9 @@ PKG_RELEASE:=1
 
 PKG_SOURCE_PROTO:=git
 PKG_SOURCE_URL=$(PROJECT_GIT)/project/uqmi.git
-PKG_SOURCE_DATE:=2023-10-29
-PKG_SOURCE_VERSION:=eea292401c388a4eb59c0caf5d00aa046c6059f4
-PKG_MIRROR_HASH:=744f7e2010bd16ca08b03551287a0e1d119e1e6e099f8abf935328d3d1344893
+PKG_SOURCE_DATE:=2024-04-24
+PKG_SOURCE_VERSION:=e7207bec95f02f2f7a98254d642186a082af838d
+PKG_MIRROR_HASH:=53e83720472f07cb9bb3e2b68ea6c379fc8c43ed8f93227bcb3d06c94a32a669
 PKG_MAINTAINER:=Matti Laakso <malaakso@elisanet.fi>
 
 PKG_LICENSE:=GPL-2.0
@@ -34,7 +34,6 @@ endef
 
 TARGET_CFLAGS += \
 	-I$(STAGING_DIR)/usr/include \
-	-Wno-error=dangling-pointer \
 	-Wno-error=maybe-uninitialized
 
 CMAKE_OPTIONS += \
@@ -42,7 +41,7 @@ CMAKE_OPTIONS += \
 
 define Package/uqmi/install
 	$(INSTALL_DIR) $(1)/sbin
-	$(INSTALL_BIN) $(PKG_BUILD_DIR)/uqmi $(1)/sbin/
+	$(INSTALL_BIN) $(PKG_BUILD_DIR)/uqmi/uqmi $(1)/sbin/
 	$(CP) ./files/* $(1)/
 endef
 
