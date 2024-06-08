@@ -34,12 +34,12 @@ define Build/Compile
 endef
 
 define Package/nginx-luci-jwt-auth/install
-	mkdir -p $(1)/etc/nginx.d/conf.d/ $(1)/etc/init.d/ $(1)/opt/jwt-auth/
+	mkdir -p $(1)/etc/nginx/conf.d/ $(1)/etc/init.d/ $(1)/opt/jwt-auth/
 	$(CP) $(PKG_BUILD_DIR)/*.py $(1)/opt/jwt-auth/
 	$(CP) -r $(PKG_BUILD_DIR)/jwt $(1)/opt/jwt-auth/jwt
 	$(CP) $(PKG_BUILD_DIR)/jwt-authd $(1)/etc/init.d/
 	chmod +x $(1)/etc/init.d/jwt-authd
-	$(CP) $(PKG_BUILD_DIR)/jwt-auth.locations $(1)/etc/nginx.d/conf.d/
+	$(CP) $(PKG_BUILD_DIR)/jwt-auth.locations $(1)/etc/nginx/conf.d/
 endef
 
 $(eval $(call BuildPackage,nginx-luci-jwt-auth))
