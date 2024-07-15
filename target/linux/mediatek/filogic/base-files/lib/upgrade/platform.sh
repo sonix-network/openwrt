@@ -142,7 +142,8 @@ platform_do_upgrade() {
 		CI_KERNPART="fit"
 		nand_do_upgrade "$1"
 		;;
-	mercusys,mr90x-v1)
+	mercusys,mr90x-v1|\
+	tplink,re6000xd)
 		CI_UBIPART="ubi0"
 		nand_do_upgrade "$1"
 		;;
@@ -206,6 +207,7 @@ platform_check_image() {
 
 	case "$board" in
 	bananapi,bpi-r3|\
+	bananapi,bpi-r3-mini|\
 	bananapi,bpi-r4|\
 	bananapi,bpi-r4-poe|\
 	cmcc,rax3000m)
