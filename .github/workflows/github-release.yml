@@ -27,6 +27,7 @@ jobs:
         id: compile
         run: |
           set -euo pipefail
+          set -x
           ./scripts/feeds update -a
           ./scripts/feeds install -a
           cp -v sonix/diffconfig .config
@@ -35,7 +36,10 @@ jobs:
           #  patch -p1 < $p
           #done
           sed -i "s/SONIX-GIT/SONIX-${{ steps.vars.outputs.version_number }}/g" .config
-          make -j$(nproc) defconfig download clean world || (echo '!!! Failed, rebuilding with verbose logs'; make world V=sc)
+          make defconfig
+          make -j$(nproc) download
+          make clean
+          make -j$(nproc) world || (echo '!!! Failed, rebuilding with verbose logs'; make world V=sc)
           cp -v .config bin/targets/octeon/generic/openwrt-octeon-generic-cisco_vedge1000.config
       - name: Release
         uses: softprops/action-gh-release@v2
