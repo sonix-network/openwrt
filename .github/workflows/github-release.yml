@@ -31,10 +31,9 @@ jobs:
           ver=$(curl -s https://downloads.openwrt.org/snapshots/targets/octeon/generic/sha256sums | awk '/openwrt-toolchain/ {print $2}' | sed -s 's/*//')
           echo "Latest toolchain available is ${ver}"
           curl "https://downloads.openwrt.org/snapshots/targets/octeon/generic/${ver}" -o toolchain.tar.zst
-          tar -xvf toolchain.tar.zst
+          mkdir -p toolchain/
+          tar -C toolchain -xf toolchain.tar.zst '*/toolchain-*/' --strip-components=2
           rm -f toolchain.tar.zst
-          mkdir toolchain/
-          tar -C toolchain -xvf toolchain.tar.zst '*/toolchain-*/' --strip-components=2
       - name: Compile
         id: compile
         run: |
