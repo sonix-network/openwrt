@@ -23,6 +23,18 @@ jobs:
         id: vars
         run: |
           echo "version_number=$(date +%Y-%m-%d).${{github.run_number}}" >> $GITHUB_OUTPUT
+
+      - name: Setup toolchain
+        id: toolchain
+        run: |
+          set -euo pipefail
+          ver=$(curl -s https://downloads.openwrt.org/snapshots/targets/octeon/generic/sha256sums | awk '/openwrt-toolchain/ {print $2}' | sed -s 's/*//')
+          echo "Latest toolchain available is ${ver}"
+          curl "https://downloads.openwrt.org/snapshots/targets/octeon/generic/${ver}" -o toolchain.tar.zst
+          tar -xvf toolchain.tar.zst
+          rm -f toolchain.tar.zst
+          mkdir toolchain/
+          tar -C toolchain -xvf toolchain.tar.zst '*/toolchain-*/' --strip-components=2
       - name: Compile
         id: compile
         run: |
@@ -31,16 +43,15 @@ jobs:
           ./scripts/feeds update -a
           ./scripts/feeds install -a
           cp -v sonix/diffconfig .config
-          #for p in ./sonix/*.patch
-          #do
-          #  patch -p1 < $p
-          #done
           sed -i "s/SONIX-GIT/SONIX-${{ steps.vars.outputs.version_number }}/g" .config
           make defconfig
+          ./scripts/ext-toolchain.sh --toolchain $PWD/toolchain/ --overwrite-config --config octeon/generic
           make -j$(nproc) download
           make clean
           make -j$(nproc) world || (echo '!!! Failed, rebuilding with verbose logs'; make world V=sc)
+          make json_overview_image_info
           cp -v .config bin/targets/octeon/generic/openwrt-octeon-generic-cisco_vedge1000.config
+          cat bin/targets/octeon/generic/profiles.json | jq > bin/targets/octeon/generic/openwrt-octeon-generic-cisco_vedge1000.json
       - name: Release
         uses: softprops/action-gh-release@v2
         with:
