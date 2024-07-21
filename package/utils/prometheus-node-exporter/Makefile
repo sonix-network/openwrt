@@ -8,7 +8,7 @@ PKG_NAME:=prometheus-node-exporter
 PKG_VERSION:=1.8.2
 PKG_RELEASE:=1
 
-PKG_BUILD_DIR=$(BUILD_DIR)/$(PKG_NAME)-$(BUILD_VARIANT)/$(PKG_NAME)-$(PKG_VERSION)
+PKG_BUILD_DIR=$(BUILD_DIR)/$(PKG_NAME)
 PKG_SOURCE:=node_exporter-$(PKG_VERSION).linux-$(ARCH).tar.gz
 PKG_SOURCE_URL:=https://github.com/prometheus/node_exporter/releases/download/v$(PKG_VERSION)
 PKG_SOURCE_VERSION:=0
@@ -35,7 +35,7 @@ endef
 
 define Package/prometheus-node-exporter/install
 	mkdir -p $(1)/etc/init.d/ $(1)/usr/bin/
-	$(CP) $(PKG_BUILD_DIR)/node_exporter $(1)/usr/bin/
+	$(CP) $(PKG_BUILD_DIR)/node_exporter-*/node_exporter $(1)/usr/bin/
 	chmod +x $(1)/usr/bin/node_exporter
 	$(CP) ./files/prometheus-node-exporter.init $(1)/etc/init.d/prometheus-node-exporter
 	chmod +x $(1)/etc/init.d/prometheus-node-exporter
