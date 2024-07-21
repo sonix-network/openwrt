@@ -378,6 +378,7 @@ CONFIG_PACKAGE_procps-ng-sysctl=y
 CONFIG_PACKAGE_procps-ng-top=y
 CONFIG_PACKAGE_procps-ng-uptime=y
 CONFIG_PACKAGE_procps-ng-watch=y
+CONFIG_PACKAGE_prometheus-node-exporter=y
 CONFIG_PACKAGE_python3=y
 CONFIG_PACKAGE_python3-asyncio=y
 CONFIG_PACKAGE_python3-base=y
