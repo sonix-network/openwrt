@@ -26,6 +26,7 @@ jobs:
       - name: Compile
         id: compile
         run: |
+          set -euo pipefail
           ./scripts/feeds update -a
           ./scripts/feeds install -a
           cp -v sonix/diffconfig .config
