@@ -43,8 +43,10 @@ jobs:
           ./scripts/feeds install -a
           cp -v sonix/diffconfig .config
           sed -i "s/SONIX-GIT/SONIX-${{ steps.vars.outputs.version_number }}/g" .config
-          make defconfig
           ./scripts/ext-toolchain.sh --toolchain $PWD/toolchain/ --overwrite-config --config octeon/generic
+          # disable locale and gettext-full dependency added by external toolchain
+          sed '/^CONFIG_BUILD_NLS=y/d' .config
+          make defconfig
           make -j$(nproc) download
           make clean
           make -j$(nproc) world || \
