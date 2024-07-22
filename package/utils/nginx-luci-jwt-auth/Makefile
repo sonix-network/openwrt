@@ -21,7 +21,7 @@ define Package/nginx-luci-jwt-auth
   SECTION:=base
   CATEGORY:=Network
   TITLE:=SONIX JWT Authentication for LuCI
-  DEPENDS:=+python3-flask +python3-ubus +python3-cryptography
+  DEPENDS:=+python3-flask +python3-ubus
   URL:=https://github.com/sonix-network/nginx-luci-jwt-auth
 endef
 
