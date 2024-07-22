@@ -50,7 +50,7 @@ jobs:
       - name: Build the host tools
         id: host
         run: |
-          make -j$(nproc) toolchain
+          make -j$(nproc) toolchain/compile
       - name: Build the target image
         id: build
         run: |
