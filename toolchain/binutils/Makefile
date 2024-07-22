@@ -53,7 +53,6 @@ else
 endif
 
 HOST_CONFIGURE_ARGS = \
-	--with-cc-opt="-D_LARGEFILE64_SOURCE" \
 	--prefix=$(TOOLCHAIN_DIR) \
 	--build=$(GNU_HOST_NAME) \
 	--host=$(GNU_HOST_NAME) \

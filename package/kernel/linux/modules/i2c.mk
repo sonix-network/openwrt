@@ -336,6 +336,7 @@ endef
 $(eval $(call KernelPackage,i2c-smbus))
 
 
+
 I2C_TINY_USB_MODULES:= \
   CONFIG_I2C_TINY_USB:drivers/i2c/busses/i2c-tiny-usb
 

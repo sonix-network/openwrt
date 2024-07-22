@@ -28,7 +28,7 @@ PKG_BUILD_PARALLEL:=0
 PKG_FIXUP:=autoreconf
 
 HOST_BUILD_DEPENDS:=gperf/host libiconv-full/host libunistring/host libxml2/host
-HOST_BUILD_PARALLEL:=1
+HOST_BUILD_PARALLEL:=0
 
 PKG_SUBDIRS:= \
 	$$$$(foreach dir, \
