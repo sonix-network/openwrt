@@ -34,8 +34,8 @@ jobs:
           mkdir -p toolchain/
           tar -C toolchain -xf toolchain.tar.zst '*/toolchain-*/' --strip-components=2
           rm -f toolchain.tar.zst
-      - name: Compile
-        id: compile
+      - name: Setup build and compile toolchain
+        id: toolchain
         run: |
           set -euo pipefail
           set -x
@@ -47,6 +47,10 @@ jobs:
           if grep CONFIG_BUILD_NLS=y .config ; then echo '!!! We should not build with NLS as it increases build-time for no gain, remove it'; exit 1; fi
           make -j$(nproc) download
           make clean
+          make -j$(nproc) toolchain
+      - name: Build the image
+        id: build
+        run: |
           make -j$(nproc) world || \
             (echo '!!! Failed, will retry twice more'; make -j$(nproc) world || \
             (echo '!!! Failed, will retry once more'; make -j$(nproc) world))
