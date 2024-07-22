@@ -54,6 +54,11 @@ jobs:
             (echo '!!! Failed, will retry once more'; make -j$(nproc) world))
           cp -v .config bin/targets/octeon/generic/openwrt-octeon-generic-cisco_vedge1000.config
           cat bin/targets/octeon/generic/profiles.json | jq > bin/targets/octeon/generic/openwrt-octeon-generic-cisco_vedge1000.json
+      - name: Print build times for packages
+        id: buildtime
+        if: always()
+        run: |
+          grep -h '^time: ' -r logs/ | cut -c 7- | sort -t '#' -n -k 4 | column -t -s '#' --table-columns PACKAGE,USER,SYSTEM,WALL
       - name: Upload logs
         uses: actions/upload-artifact@v4
         if: always()
