@@ -5,15 +5,15 @@
 include $(TOPDIR)/rules.mk
 
 PKG_NAME:=nginx-luci-jwt-auth
-PKG_VERSION:=1.0.0
+PKG_VERSION:=1.1.0
 PKG_RELEASE:=1
 
 PKG_BUILD_DIR=$(BUILD_DIR)/$(PKG_NAME)/$(PKG_NAME)-$(PKG_VERSION)
 PKG_SOURCE_PROTO:=git
 PKG_SOURCE_URL:=https://github.com/sonix-network/nginx-luci-jwt-auth.git
-PKG_SOURCE_VERSION:=9f87bffc1546514adcacf5e121065d7a6addf6fb
-PKG_SOURCE_DATE:=2024-03-09
-PKG_MIRROR_HASH:=64a0feb8c267d1547d9443bf51f538a1becf6c8a36b381b280460dca09db9637
+PKG_SOURCE_VERSION:=caaf2870ad43204dffae934aa98567f2c4218dc6
+PKG_SOURCE_DATE:=2024-07-22
+PKG_MIRROR_HASH:=c88a196e8763603513c78145c7fe3058eb112bc4353ec33477abb896a9955a80
 
 include $(INCLUDE_DIR)/package.mk
 
@@ -21,7 +21,7 @@ define Package/nginx-luci-jwt-auth
   SECTION:=base
   CATEGORY:=Network
   TITLE:=SONIX JWT Authentication for LuCI
-  DEPENDS:=+python3-flask +python3-ubus +python3-cryptography
+  DEPENDS:=+python3-flask +python3-ubus
   URL:=https://github.com/sonix-network/nginx-luci-jwt-auth
 endef
 
