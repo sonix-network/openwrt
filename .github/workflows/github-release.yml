@@ -78,5 +78,6 @@ jobs:
           name: "v${{ steps.vars.outputs.version_number }}"
           prerelease: true
           tag_name: "v${{ steps.vars.outputs.version_number }}"
+          target_commitish: "${{ github.sha }}"
           files: |
             bin/targets/octeon/generic/openwrt-*
