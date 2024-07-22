@@ -44,9 +44,7 @@ jobs:
           cp -v sonix/diffconfig .config
           sed -i "s/SONIX-GIT/SONIX-${{ steps.vars.outputs.version_number }}/g" .config
           ./scripts/ext-toolchain.sh --toolchain $PWD/toolchain/ --overwrite-config --config octeon/generic
-          # disable locale and gettext-full dependency added by external toolchain
-          sed -i '/^CONFIG_BUILD_NLS=y/d' .config
-          make defconfig
+          if grep CONFIG_BUILD_NLS=y .config ; then echo '!!! We should not build with NLS as it increases build-time for no gain, remove it'; exit 1; fi
           make -j$(nproc) download
           make clean
           make -j$(nproc) world || \
