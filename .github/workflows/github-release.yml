@@ -24,51 +24,99 @@ jobs:
         run: |
           echo "version_number=$(date +%Y-%m-%d).${{github.run_number}}" >> $GITHUB_OUTPUT
 
-      - name: Setup toolchain
+      - name: Setup toolchains
         id: toolchain
         run: |
           set -euo pipefail
-          ver=$(curl -s https://downloads.openwrt.org/snapshots/targets/octeon/generic/sha256sums | awk '/openwrt-toolchain/ {print $2}' | sed -s 's/*//')
-          echo "Latest toolchain available is ${ver}"
-          curl "https://downloads.openwrt.org/snapshots/targets/octeon/generic/${ver}" -o toolchain.tar.zst
-          mkdir -p toolchain/
-          tar -C toolchain -xf toolchain.tar.zst '*/toolchain-*/' --strip-components=2
-          rm -f toolchain.tar.zst
-      - name: Setup build
+          ver_octeon=$(curl -s https://downloads.openwrt.org/snapshots/targets/octeon/generic/sha256sums | awk '/openwrt-toolchain/ {print $2}' | sed -s 's/*//')
+          ver_x64=$(curl -s https://downloads.openwrt.org/snapshots/targets/x86/64/sha256sums | awk '/openwrt-toolchain/ {print $2}' | sed -s 's/*//')
+          echo "Latest toolchain available for Octeon is ${ver_octeon}"
+          echo "Latest toolchain available for x86_64 is ${ver_x64}"
+          curl "https://downloads.openwrt.org/snapshots/targets/octeon/generic/${ver_octeon}" -o toolchain_octeon.tar.zst
+          curl "https://downloads.openwrt.org/snapshots/targets/x86/64/${ver_x64}" -o toolchain_x64.tar.zst
+          mkdir -p toolchain/octeon/
+          mkdir -p toolchain/x64/
+          tar -C toolchain/octeon -xf toolchain_octeon.tar.zst '*/toolchain-*/' --strip-components=2
+          tar -C toolchain/x64 -xf toolchain_x64.tar.zst '*/toolchain-*/' --strip-components=2
+          rm -f toolchain_*.tar.zst
+      - name: Fetch feeds
         id: setup
         run: |
           set -euo pipefail
           set -x
           ./scripts/feeds update -a
           ./scripts/feeds install -a
+      - name: Setup build for Octeon
+        id: setup_octeon
+        run: |
+          set -euo pipefail
+          set -x
+          rm -fr logs/
           cp -v sonix/diffconfig .config
           sed -i "s/SONIX-GIT/SONIX-${{ steps.vars.outputs.version_number }}/g" .config
-          ./scripts/ext-toolchain.sh --toolchain $PWD/toolchain/ --overwrite-config --config octeon/generic
+          ./scripts/ext-toolchain.sh --toolchain $PWD/toolchain/octeon --overwrite-config --config octeon/generic
           if grep CONFIG_BUILD_NLS=y .config ; then echo '!!! We should not build with NLS as it increases build-time for no gain, remove it'; exit 1; fi
           make -j$(nproc) download
           make clean
-      - name: Build the host tools
-        id: host
+      - name: Build the host tools for Octeon
+        id: host_octeon
         run: |
           make -j$(nproc) tools/compile
-      - name: Build the target image
-        id: build
+      - name: Build the target image for Octeon
+        id: build_octeon
         run: |
           make -j$(nproc) world || \
             (echo '!!! Failed, will retry twice more'; make -j$(nproc) world || \
             (echo '!!! Failed, will retry once more'; make -j$(nproc) world))
           cp -v .config bin/targets/octeon/generic/openwrt-octeon-generic-cisco_vedge1000.config
           cat bin/targets/octeon/generic/profiles.json | jq > bin/targets/octeon/generic/openwrt-octeon-generic-cisco_vedge1000.json
-      - name: Print build times for packages
-        id: buildtime
+      - name: Print build times for Octeon packages
+        id: buildtime_octeon
         if: always()
         run: |
           grep -h '^time: ' -r logs/ | cut -c 7- | sort -t '#' -n -k 4 | column -t -s '#' --table-columns PACKAGE,USER,SYSTEM,WALL
-      - name: Upload logs
+      - name: Upload logs for Octeon
         uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: logs
+          name: logs-octeon
+          path: logs/**
+          if-no-files-found: error
+          retention-days: 90
+      - name: Setup build for x86_64
+        id: setup_x64
+        run: |
+          set -euo pipefail
+          set -x
+          rm -fr logs/
+          cp -v sonix/diffconfig .config
+          sed -i "s/SONIX-GIT/SONIX-${{ steps.vars.outputs.version_number }}/g" .config
+          ./scripts/ext-toolchain.sh --toolchain $PWD/toolchain/x64 --overwrite-config --config x86/64
+          if grep CONFIG_BUILD_NLS=y .config ; then echo '!!! We should not build with NLS as it increases build-time for no gain, remove it'; exit 1; fi
+          make -j$(nproc) download
+          make clean
+      - name: Build the host tools for x86_64
+        id: host_x64
+        run: |
+          make -j$(nproc) tools/compile
+      - name: Build the target image for x86_64
+        id: build_x64
+        run: |
+          make -j$(nproc) world || \
+            (echo '!!! Failed, will retry twice more'; make -j$(nproc) world || \
+            (echo '!!! Failed, will retry once more'; make -j$(nproc) world))
+          cp -v .config bin/targets/x86/64/openwrt-x86-64-generic.config
+          cat bin/targets/x86/64/profiles.json | jq > bin/targets/x86/64/openwrt-x86-64-generic.json
+      - name: Print build times for x86_64 packages
+        id: buildtime_x64
+        if: always()
+        run: |
+          grep -h '^time: ' -r logs/ | cut -c 7- | sort -t '#' -n -k 4 | column -t -s '#' --table-columns PACKAGE,USER,SYSTEM,WALL
+      - name: Upload logs for x86_64
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: logs-x86_64
           path: logs/**
           if-no-files-found: error
           retention-days: 90
@@ -81,3 +129,4 @@ jobs:
           target_commitish: "${{ github.sha }}"
           files: |
             bin/targets/octeon/generic/openwrt-*
+            bin/targets/x86/64/openwrt-*
