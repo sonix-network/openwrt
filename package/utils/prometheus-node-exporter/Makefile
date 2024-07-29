@@ -8,12 +8,15 @@ PKG_NAME:=prometheus-node-exporter
 PKG_VERSION:=1.8.2
 PKG_RELEASE:=1
 
-PKG_BUILD_DIR=$(BUILD_DIR)/node_exporter-$(PKG_VERSION).linux-$(ARCH)
-PKG_SOURCE:=node_exporter-$(PKG_VERSION).linux-$(ARCH).tar.gz
+NODE_ARCH:=$(subst x86_64,amd64,$(ARCH))
+PKG_BUILD_DIR=$(BUILD_DIR)/node_exporter-$(PKG_VERSION).linux-$(NODE_ARCH)
+PKG_SOURCE:=node_exporter-$(PKG_VERSION).linux-$(NODE_ARCH).tar.gz
 PKG_SOURCE_URL:=https://github.com/prometheus/node_exporter/releases/download/v$(PKG_VERSION)
 PKG_SOURCE_VERSION:=0
 PKG_SOURCE_DATE:=2024-06-19
-PKG_HASH:=0080c5564c6844f11e2ad39864993407bace78a458d995397e0c419b1d460ec7
+PKG_HASH_amd64:=6809dd0b3ec45fd6e992c19071d6b5253aed3ead7bf0686885a51d85c6643c66
+PKG_HASH_mips64:=0080c5564c6844f11e2ad39864993407bace78a458d995397e0c419b1d460ec7
+PKG_HASH:=$(PKG_HASH_$(NODE_ARCH))
 
 include $(INCLUDE_DIR)/package.mk
 
