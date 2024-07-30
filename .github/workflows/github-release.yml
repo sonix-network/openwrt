@@ -61,6 +61,7 @@ jobs:
         id: feeds
         run: |
           set -xeuo pipefail
+          cp -v sonix/feeds.conf .
           ./scripts/feeds update -a
           ./scripts/feeds install -a
       - name: Setup build
