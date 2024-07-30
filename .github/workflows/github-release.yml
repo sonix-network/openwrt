@@ -122,7 +122,6 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           pattern: bin-*
-          merge-multiple: true
       - name: Release
         uses: softprops/action-gh-release@v2
         with:
@@ -131,4 +130,4 @@ jobs:
           tag_name: "v${{ needs.setup.outputs.version_number }}"
           target_commitish: "${{ github.sha }}"
           files: |
-            bin/targets/*/*/openwrt-*
+            bin-*/openwrt-*
