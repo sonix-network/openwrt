@@ -70,10 +70,8 @@ jobs:
           set -xeuo pipefail
           rm -fr logs/
           cp -v sonix/diffconfig .config
+          cat sonix/overrides >> .config
           sed -i "s/SONIX-GIT/SONIX-${{ needs.setup.outputs.version_number }}/g" .config
-          # ensure only squashfs is being built
-          echo 'CONFIG_TARGET_ROOTFS_EXT4FS=n' >> .config
-          echo 'CONFIG_TARGET_ROOTFS_TARGZ=n' >> .config
           ./scripts/ext-toolchain.sh --toolchain $PWD/toolchain --overwrite-config --config ${{ matrix.target }}/${{ matrix.variant }}
           if grep CONFIG_BUILD_NLS=y .config ; then echo '!!! We should not build with NLS as it increases build-time for no gain, remove it'; exit 1; fi
           make -j$(nproc) download
