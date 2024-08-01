@@ -13,10 +13,12 @@ on:
   workflow_dispatch:
 
 jobs:
+  # NOTE: setup and release step runs on Github's ordinary runners while
+  # the build step runs on our own. This allows starting and finishing builds
+  # without being blocked on the self-hosted runners.
   setup:
     name: Setup
-    runs-on: self-hosted
-
+    runs-on: ubuntu-24.04
     outputs:
       version_number: ${{ steps.vars.outputs.version_number }}
       matrix: ${{ steps.toolchain.outputs.matrix }}
@@ -111,7 +113,7 @@ jobs:
           retention-days: 90
   release:
     name: Upload release
-    runs-on: self-hosted
+    runs-on: ubuntu-24.04
     needs:
       - setup
       - build-matrix
