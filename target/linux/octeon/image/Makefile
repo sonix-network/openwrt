@@ -119,6 +119,7 @@ define Device/cisco_vedge1000
        kmod-usb-dwc3 \
        kmod-usb-storage-uas \
        kmod-usb3 \
+       sfdisk \
        uboot-envtools
   KERNEL := kernel-bin | append-dtb-elf
   KERNEL_DEPENDS := $$(wildcard $(DTS_DIR)/$(DEVICE_DTS).dts)
