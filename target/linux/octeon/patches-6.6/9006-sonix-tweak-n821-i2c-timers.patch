@@ -7,11 +7,9 @@ Subject: [PATCH] sonix: tweak n821 i2c timers
  drivers/staging/n821-cpld/cpld_i2c.c | 4 ++--
  1 file changed, 2 insertions(+), 2 deletions(-)
 
-diff --git a/drivers/staging/n821-cpld/cpld_i2c.c b/drivers/staging/n821-cpld/cpld_i2c.c
-index bbd32eefbba4..cebef4ea7c69 100644
 --- a/drivers/staging/n821-cpld/cpld_i2c.c
 +++ b/drivers/staging/n821-cpld/cpld_i2c.c
-@@ -77,8 +77,9 @@ static int n821_cpld_i2c_xfer_polling(struct i2c_adapter *adap,
+@@ -77,8 +77,9 @@ static int n821_cpld_i2c_xfer_polling(st
      {
        int sleep;
        int status = 0;
@@ -22,7 +20,7 @@ index bbd32eefbba4..cebef4ea7c69 100644
          if ((status & 0x2) != 0) {
            break;
          }
-@@ -86,7 +87,6 @@ static int n821_cpld_i2c_xfer_polling(struct i2c_adapter *adap,
+@@ -86,7 +87,6 @@ static int n821_cpld_i2c_xfer_polling(st
        }
        if (status & 0x8) {
          // NACK
@@ -30,6 +28,3 @@ index bbd32eefbba4..cebef4ea7c69 100644
          return -EIO;
        }
        if (sleep == 0) {
--- 
-2.39.3
-

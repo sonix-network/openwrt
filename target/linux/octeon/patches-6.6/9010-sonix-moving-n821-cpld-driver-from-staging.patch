@@ -12,11 +12,9 @@ Subject: [PATCH] sonix: moving n821 cpld driver from staging
  create mode 100644 drivers/mfd/cisco-n821-cpld.c
  create mode 100644 include/linux/mfd/cisco-n821-cpld.h
 
-diff --git a/drivers/mfd/Kconfig b/drivers/mfd/Kconfig
-index ef550d33af92..fcf8baf880fc 100644
 --- a/drivers/mfd/Kconfig
 +++ b/drivers/mfd/Kconfig
-@@ -143,6 +143,18 @@ config MFD_ATMEL_HLCDC
+@@ -155,6 +155,18 @@ config MFD_ATMEL_HLCDC
  	  additional drivers must be enabled in order to use the
  	  functionality of the device.
  
@@ -35,20 +33,15 @@ index ef550d33af92..fcf8baf880fc 100644
  config MFD_ATMEL_SMC
  	bool
  	select MFD_SYSCON
-diff --git a/drivers/mfd/Makefile b/drivers/mfd/Makefile
-index 2ba6646e874c..4efac062143d 100644
 --- a/drivers/mfd/Makefile
 +++ b/drivers/mfd/Makefile
-@@ -278,3 +278,6 @@ rsmu-i2c-objs			:= rsmu_core.o rsmu_i2c.o
+@@ -284,3 +284,6 @@ rsmu-i2c-objs			:= rsmu_core.o rsmu_i2c.
  rsmu-spi-objs			:= rsmu_core.o rsmu_spi.o
  obj-$(CONFIG_MFD_RSMU_I2C)	+= rsmu-i2c.o
  obj-$(CONFIG_MFD_RSMU_SPI)	+= rsmu-spi.o
 +
 +obj-$(CONFIG_CISCO_N821_CPLD)  += cisco-n821-cpld.o
 +cisco-n821-cpld-objs  := cpld_core.o
-diff --git a/drivers/mfd/cisco-n821-cpld.c b/drivers/mfd/cisco-n821-cpld.c
-new file mode 100644
-index 000000000000..80fd678d4ab2
 --- /dev/null
 +++ b/drivers/mfd/cisco-n821-cpld.c
 @@ -0,0 +1,150 @@
@@ -202,9 +195,6 @@ index 000000000000..80fd678d4ab2
 +MODULE_DESCRIPTION("Niagara 821 CPLD driver");
 +MODULE_AUTHOR("Christian Svensson <blue@cmd.nu>");
 +MODULE_LICENSE("GPL");
-diff --git a/include/linux/mfd/cisco-n821-cpld.h b/include/linux/mfd/cisco-n821-cpld.h
-new file mode 100644
-index 000000000000..eb8fa490e694
 --- /dev/null
 +++ b/include/linux/mfd/cisco-n821-cpld.h
 @@ -0,0 +1,37 @@
@@ -245,6 +235,3 @@ index 000000000000..eb8fa490e694
 +};
 +
 +#endif
--- 
-2.39.3
-

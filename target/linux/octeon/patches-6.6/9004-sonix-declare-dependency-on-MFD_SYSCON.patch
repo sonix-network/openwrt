@@ -7,8 +7,6 @@ Subject: [PATCH] sonix: declare dependency on MFD_SYSCON
  drivers/staging/n821-cpld/Kconfig | 6 +++++-
  1 file changed, 5 insertions(+), 1 deletion(-)
 
-diff --git a/drivers/staging/n821-cpld/Kconfig b/drivers/staging/n821-cpld/Kconfig
-index 1db74863f66d..6eb7a0c5fb52 100644
 --- a/drivers/staging/n821-cpld/Kconfig
 +++ b/drivers/staging/n821-cpld/Kconfig
 @@ -3,6 +3,7 @@ config N821_CPLD
@@ -52,6 +50,3 @@ index 1db74863f66d..6eb7a0c5fb52 100644
  	select GPIO_REGMAP
  	help
  	  TODO
--- 
-2.39.3
-

@@ -7,11 +7,9 @@ Subject: [PATCH] sonix: Fix logic inversion on PSU test
  drivers/staging/n821-cpld/cpld_psu.c | 4 ++--
  1 file changed, 2 insertions(+), 2 deletions(-)
 
-diff --git a/drivers/staging/n821-cpld/cpld_psu.c b/drivers/staging/n821-cpld/cpld_psu.c
-index b7e060688ced..d832e3b09c30 100644
 --- a/drivers/staging/n821-cpld/cpld_psu.c
 +++ b/drivers/staging/n821-cpld/cpld_psu.c
-@@ -44,10 +44,10 @@ static int n821_cpld_psu_read(struct device *dev,
+@@ -44,10 +44,10 @@ static int n821_cpld_psu_read(struct dev
  
    if (channel == 0) {
      busbar = (value & 0x8) != 0;
@@ -24,6 +22,3 @@ index b7e060688ced..d832e3b09c30 100644
    } else {
      return -EINVAL;
    }
--- 
-2.39.3
-

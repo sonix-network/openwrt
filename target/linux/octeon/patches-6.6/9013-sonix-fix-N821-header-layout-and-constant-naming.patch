@@ -7,8 +7,6 @@ Subject: [PATCH] sonix: fix N821 header layout and constant naming
  include/linux/mfd/cisco-n821-cpld.h | 43 ++++++++++++++---------------
  1 file changed, 21 insertions(+), 22 deletions(-)
 
-diff --git a/include/linux/mfd/cisco-n821-cpld.h b/include/linux/mfd/cisco-n821-cpld.h
-index eb8fa490e694..20ee77b33736 100644
 --- a/include/linux/mfd/cisco-n821-cpld.h
 +++ b/include/linux/mfd/cisco-n821-cpld.h
 @@ -1,37 +1,36 @@
@@ -32,10 +30,7 @@ index eb8fa490e694..20ee77b33736 100644
 -#define CISCO_N821_CPLD_INT_IRQ_I2C       BIT(3)
 -#define CISCO_N821_CPLD_INT_IRQ_RESET_BTN BIT(6)
 -#define CISCO_N821_CPLD_INT_IRQ_OVERTEMP  BIT(7)
-+#define N821_CPLD_INT_IRQ_I2C       BIT(3)
-+#define N821_CPLD_INT_IRQ_RESET_BTN BIT(6)
-+#define N821_CPLD_INT_IRQ_OVERTEMP  BIT(7)
- 
+-
 -#define CISCO_N821_CPLD_REG_REVISION    0x2
 -#define CISCO_N821_CPLD_REG_PWR_CTRL    0x3
 -#define CISCO_N821_CPLD_REG_USB3_RST    0x4
@@ -46,6 +41,10 @@ index eb8fa490e694..20ee77b33736 100644
 -#define CISCO_N821_CPLD_REG_IRQ_STATUS  0x10
 -#define CISCO_N821_CPLD_REG_IRQ_MASK    0x11
 -#define CISCO_N821_CPLD_REG_PWR_TEST    0x20
++#define N821_CPLD_INT_IRQ_I2C       BIT(3)
++#define N821_CPLD_INT_IRQ_RESET_BTN BIT(6)
++#define N821_CPLD_INT_IRQ_OVERTEMP  BIT(7)
++
 +#define N821_CPLD_REG_REVISION    0x2
 +#define N821_CPLD_REG_PWR_CTRL    0x3
 +#define N821_CPLD_REG_USB3_RST    0x4
@@ -70,6 +69,3 @@ index eb8fa490e694..20ee77b33736 100644
  };
  
  #endif
--- 
-2.39.3
-
