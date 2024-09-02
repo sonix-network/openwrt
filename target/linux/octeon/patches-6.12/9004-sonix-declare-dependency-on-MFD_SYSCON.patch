@@ -1,0 +1,52 @@
+From caf5d22d10fdfc04cf6ece93cac7833348cee7b0 Mon Sep 17 00:00:00 2001
+From: Christian Svensson <blue@cmd.nu>
+Date: Thu, 22 Jun 2023 15:21:12 +0200
+Subject: [PATCH] sonix: declare dependency on MFD_SYSCON
+
+---
+ drivers/staging/n821-cpld/Kconfig | 6 +++++-
+ 1 file changed, 5 insertions(+), 1 deletion(-)
+
+--- a/drivers/staging/n821-cpld/Kconfig
++++ b/drivers/staging/n821-cpld/Kconfig
+@@ -3,6 +3,7 @@ config N821_CPLD
+ 	tristate "Interface Masters Niagara 821 CPLD support"
+ 	depends on CAVIUM_OCTEON_SOC || COMPILE_TEST
+ 	select MFD_CORE
++	select MFD_SYSCON
+ 	select REGMAP_IRQ
+ 	help
+ 	  TODO
+@@ -18,7 +19,7 @@ config DEBUG_N821_CPLD
+ 
+ config N821_CPLD_I2C
+ 	tristate "N821 CPLD I2C controller"
+-	depends on N821_CPLD && I2C
++	depends on N821_CPLD && I2C && MFD_SYSCON
+ 	select REGMAP_MMIO
+ 	select MDIO_I2C  # Needed for mdio-i2c-gen
+ 	help
+@@ -30,6 +31,7 @@ config N821_CPLD_I2C
+ config N821_CPLD_GPIO
+ 	tristate "N821 CPLD GPIO controller"
+ 	depends on N821_CPLD
++	select MFD_SYSCON
+ 	select GPIO_REGMAP
+ 	help
+ 	  TODO
+@@ -40,6 +42,7 @@ config N821_CPLD_GPIO
+ config N821_CPLD_FAN
+ 	tristate "N821 CPLD fan sensor"
+ 	depends on N821_CPLD
++	select MFD_SYSCON
+ 	select GPIO_REGMAP
+ 	help
+ 	  TODO
+@@ -50,6 +53,7 @@ config N821_CPLD_FAN
+ config N821_CPLD_PSU
+ 	tristate "N821 CPLD PSU sensor"
+ 	depends on N821_CPLD
++	select MFD_SYSCON
+ 	select GPIO_REGMAP
+ 	help
+ 	  TODO

@@ -1,0 +1,33 @@
+From dde2b5529ed463127b0a7421071328314ee052b6 Mon Sep 17 00:00:00 2001
+From: Christian Svensson <blue@cmd.nu>
+Date: Thu, 22 Jun 2023 13:34:19 +0200
+Subject: [PATCH] sonix: Use busbar test register for PSU monitoring
+
+The 0x6 register seems to be quite static while 0x20 is very responsive
+when voltage changes.
+---
+ drivers/staging/n821-cpld/cpld.h     | 1 +
+ drivers/staging/n821-cpld/cpld_psu.c | 2 +-
+ 2 files changed, 2 insertions(+), 1 deletion(-)
+
+--- a/drivers/staging/n821-cpld/cpld.h
++++ b/drivers/staging/n821-cpld/cpld.h
+@@ -16,6 +16,7 @@
+ #define N821_CPLD_REG_SFP_PRSNT   0x0B
+ #define N821_CPLD_REG_IRQ_STATUS  0x10
+ #define N821_CPLD_REG_IRQ_MASK    0x11
++#define N821_CPLD_REG_PWR_TEST    0x20
+ 
+ #define N821_CPLD_I2C_REG_CTRL    0x2
+ 
+--- a/drivers/staging/n821-cpld/cpld_psu.c
++++ b/drivers/staging/n821-cpld/cpld_psu.c
+@@ -100,7 +100,7 @@ static int n821_cpld_psu_probe(struct pl
+     return PTR_ERR(psu->regmap);
+   }
+ 
+-  psu->offset = N821_CPLD_REG_PWR_STATUS;
++  psu->offset = N821_CPLD_REG_PWR_TEST;
+   hwmon_dev = devm_hwmon_device_register_with_info(&pdev->dev,
+       "n821_psu", psu, &n821_cpld_psu_chip_info, NULL);
+   if (IS_ERR(hwmon_dev))
