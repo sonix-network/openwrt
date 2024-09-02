@@ -1,0 +1,133 @@
+name: Create GitHub release
+
+permissions:
+  contents: write
+
+on:
+  push:
+    branches:
+      - "sonix"
+  schedule:
+    # Build every week (sunday midnight)
+    - cron: "0 0 * * 0"
+  workflow_dispatch:
+
+jobs:
+  # NOTE: setup and release step runs on Github's ordinary runners while
+  # the build step runs on our own. This allows starting and finishing builds
+  # without being blocked on the self-hosted runners.
+  setup:
+    name: Setup
+    runs-on: ubuntu-24.04
+    outputs:
+      version_number: ${{ steps.vars.outputs.version_number }}
+      matrix: ${{ steps.toolchain.outputs.matrix }}
+
+    steps:
+      - name: Set outputs
+        id: vars
+        run: |
+          echo "version_number=$(date +%Y-%m-%d).${{github.run_number}}" >> $GITHUB_OUTPUT
+
+      - name: Prepare toolchains
+        id: toolchain
+        run: |
+          set -xeuo pipefail
+          ver_octeon=$(curl -s https://downloads.openwrt.org/snapshots/targets/octeon/generic/sha256sums | awk '/openwrt-toolchain/ {print $2}' | sed -s 's/*//')
+          ver_x86=$(curl -s https://downloads.openwrt.org/snapshots/targets/x86/64/sha256sums | awk '/openwrt-toolchain/ {print $2}' | sed -s 's/*//')
+          echo "Latest toolchain available for Octeon is ${ver_octeon}"
+          echo "Latest toolchain available for x86_64 is ${ver_x86}"
+          echo "matrix=[" \
+            "{\"target\": \"octeon\", \"variant\": \"generic\", \"toolchain\": \"${ver_octeon}\"}," \
+            "{\"target\": \"x86\", \"variant\": \"64\", \"toolchain\": \"${ver_x86}\"}" \
+            "]" >> "$GITHUB_OUTPUT"
+  build-matrix:
+    name: Build
+    needs: setup
+    runs-on: self-hosted
+    strategy:
+      matrix:
+        include: ${{ fromJSON(needs.setup.outputs.matrix) }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup toolchain
+        id: toolchain
+        run: |
+          set -xeuo pipefail
+          curl "https://downloads.openwrt.org/snapshots/targets/${{ matrix.target }}/${{ matrix.variant }}/${{ matrix.toolchain }}" -o toolchain.tar.zst
+          mkdir -p toolchain/
+          tar -C toolchain/ -xf toolchain.tar.zst '*/toolchain-*/' --strip-components=2
+          rm -f toolchain_*.tar.zst
+      - name: Fetch feeds
+        id: feeds
+        run: |
+          set -xeuo pipefail
+          cp -v sonix/feeds.conf .
+          ./scripts/feeds update -a
+          ./scripts/feeds install -a
+      - name: Setup build
+        id: setup
+        run: |
+          set -xeuo pipefail
+          rm -fr logs/
+          cp -v sonix/diffconfig .config
+          cat sonix/overrides >> .config
+          sed -i "s/SONIX-GIT/SONIX-${{ needs.setup.outputs.version_number }}/g" .config
+          ./scripts/ext-toolchain.sh --toolchain $PWD/toolchain --overwrite-config --config ${{ matrix.target }}/${{ matrix.variant }}
+          if grep CONFIG_BUILD_NLS=y .config ; then echo '!!! We should not build with NLS as it increases build-time for no gain, remove it'; exit 1; fi
+          make -j$(nproc) download
+          make clean
+      - name: Build the host tools
+        id: host
+        run: |
+          set -xeuo pipefail
+          make -j$(nproc) tools/compile
+      - name: Build the target image
+        id: build
+        run: |
+          set -xeuo pipefail
+          make -j$(nproc) world
+          cp -v .config bin/targets/${{ matrix.target }}/${{ matrix.variant }}/openwrt-${{ matrix.target }}-${{ matrix.variant }}.config
+          cat bin/targets/${{ matrix.target }}/${{ matrix.variant }}/profiles.json | jq \
+            > bin/targets/${{ matrix.target }}/${{ matrix.variant }}/openwrt-${{ matrix.target }}-${{ matrix.variant }}.json
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: bin-${{ matrix.target }}-${{ matrix.variant }}
+          path: bin/targets/${{ matrix.target }}/${{ matrix.variant }}/openwrt-*
+          if-no-files-found: error
+          retention-days: 90
+      - name: Print build times
+        id: buildtime
+        if: always()
+        run: |
+          grep -h '^time: ' -r logs/ | cut -c 7- | sort -t '#' -n -k 4 | column -t -s '#' --table-columns PACKAGE,USER,SYSTEM,WALL
+      - name: Upload logs
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: logs-${{ matrix.target }}-${{ matrix.variant }}
+          path: logs/**
+          if-no-files-found: error
+          retention-days: 90
+  release:
+    name: Upload release
+    runs-on: ubuntu-24.04
+    needs:
+      - setup
+      - build-matrix
+    steps:
+      - name: Retrieve Artifacts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: bin-*
+      - name: Release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: "v${{ needs.setup.outputs.version_number }}"
+          prerelease: true
+          tag_name: "v${{ needs.setup.outputs.version_number }}"
+          target_commitish: "${{ github.sha }}"
+          files: |
+            bin-*/openwrt-*
