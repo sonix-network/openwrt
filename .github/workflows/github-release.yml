@@ -95,7 +95,11 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: bin-${{ matrix.target }}-${{ matrix.variant }}
-          path: bin/targets/${{ matrix.target }}/${{ matrix.variant }}/openwrt-*
+          path: |
+            bin/targets/${{ matrix.target }}/${{ matrix.variant }}/openwrt-*-sysupgrade.tar
+            bin/targets/${{ matrix.target }}/${{ matrix.variant }}/openwrt-*-combined-efi.img.gz
+            bin/targets/${{ matrix.target }}/${{ matrix.variant }}/openwrt-*.config
+            bin/targets/${{ matrix.target }}/${{ matrix.variant }}/openwrt-*.json
           if-no-files-found: error
           retention-days: 90
       - name: Print build times
