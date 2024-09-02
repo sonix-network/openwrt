@@ -101,10 +101,22 @@ define Device/cisco_vedge1000
   BOARD_NAME := cisco,vedge1000
   DEVICE_PACKAGES += \
 	blkid \
+	kmod-cisco-n821-cpld \
+	kmod-eeprom-at24 \
+	kmod-gpio-n821-cpld \
+	kmod-hid \
 	kmod-hwmon-jc42 \
+	kmod-hwmon-lm90 \
 	kmod-hwmon-max6697 \
+	kmod-hwmon-n821-cpld-fan \
+	kmod-hwmon-n821-cpld-psu \
+	kmod-i2c-mux-reg \
+	kmod-i2c-n821-cpld \
+	kmod-input-gpio-keys \
+	kmod-mdio-i2c-gen \
 	kmod-of-mdio \
 	kmod-rtc-ds1307 \
+	kmod-sfp \
 	kmod-usb-dwc3 \
 	kmod-usb-storage-uas \
 	kmod-usb3 \

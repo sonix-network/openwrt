@@ -1151,3 +1151,36 @@ define KernelPackage/mhi-pci-generic/description
 endef
 
 $(eval $(call KernelPackage,mhi-pci-generic))
+
+
+define KernelPackage/cisco-n821-cpld
+  SUBMENU:=$(OTHER_MENU)
+  TITLE:=Cisco N821 CPLD Support
+  KCONFIG:=CONFIG_CISCO_N821_CPLD
+  FILES:=$(LINUX_DIR)/drivers/mfd/cisco-n821-cpld.ko
+  AUTOLOAD:=$(call AutoProbe,cisco-n821-cpld)
+endef
+
+define KernelPackage/cisco-n821-cpld/description
+  Kernel module for system CPLD found on Niagara 821 boards.
+endef
+
+$(eval $(call KernelPackage,cisco-n821-cpld))
+
+
+define KernelPackage/gpio-n821-cpld
+  SUBMENU:=$(OTHER_MENU)
+  TITLE:=N821 CPLD GPIO Support
+  KCONFIG:=CONFIG_N821_CPLD_GPIO
+  DEPENDS:=+kmod-cisco-n821-cpld +kmod-regmap-mmio
+  FILES:= \
+	$(LINUX_DIR)/drivers/staging/n821-cpld/n821-cpld-gpio.ko \
+	$(LINUX_DIR)/drivers/gpio/gpio-regmap.ko
+  AUTOLOAD:=$(call AutoProbe,n821-cpld-gpio)
+endef
+
+define KernelPackage/gpio-n821-cpld/description
+  Kernel module for the GPIOs found on Niagara 821 boards.
+endef
+
+$(eval $(call KernelPackage,gpio-n821-cpld))

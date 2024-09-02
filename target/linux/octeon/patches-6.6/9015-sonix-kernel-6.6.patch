@@ -1,0 +1,47 @@
+Upgrade kernel to 6.6
+
+--- a/drivers/mfd/cisco-n821-cpld.c
++++ b/drivers/mfd/cisco-n821-cpld.c
+@@ -35,9 +35,8 @@ static const struct regmap_irq n821_cpld
+ static const struct regmap_irq_chip n821_cpld_irq_chip = {
+   .name            = "n821-cpld-ic",
+   .status_base     = N821_CPLD_REG_IRQ_STATUS,
+-  .mask_base       = N821_CPLD_REG_IRQ_MASK,
++  .unmask_base     = N821_CPLD_REG_IRQ_UNMASK,
+   .ack_base        = N821_CPLD_REG_IRQ_STATUS,
+-  .mask_invert     = true,
+   .num_regs        = 1,
+   .init_ack_masked = 1,
+   .irqs            = n821_cpld_irq_map,
+--- a/drivers/staging/n821-cpld/mdio-i2c-gen.c
++++ b/drivers/staging/n821-cpld/mdio-i2c-gen.c
+@@ -13,8 +13,7 @@
+ #include <linux/of_mdio.h>
+ #include <linux/mdio/mdio-i2c.h>
+ 
+-static int mdio_i2c_gen_probe(struct i2c_client *client,
+-				 const struct i2c_device_id *id)
++static int mdio_i2c_gen_probe(struct i2c_client *client)
+ {
+ 	struct device *dev = &client->dev;
+ 	struct device_node *np = dev->of_node;
+@@ -81,7 +80,7 @@ static struct i2c_driver mdio_i2c_gen_dr
+ 		.name	= "mdio-i2c-gen",
+ 		.of_match_table = of_match_ptr(mdio_i2c_gen_of_match),
+ 	},
+-	.probe		= mdio_i2c_gen_probe,
++	.probe	= mdio_i2c_gen_probe,
+ 	.remove	= mdio_i2c_gen_remove,
+ };
+ 
+--- a/include/linux/mfd/cisco-n821-cpld.h
++++ b/include/linux/mfd/cisco-n821-cpld.h
+@@ -22,7 +22,7 @@
+ #define N821_CPLD_REG_FAN1_SPEED  0x8
+ #define N821_CPLD_REG_SFP_PRSNT   0x0B
+ #define N821_CPLD_REG_IRQ_STATUS  0x10
+-#define N821_CPLD_REG_IRQ_MASK    0x11
++#define N821_CPLD_REG_IRQ_UNMASK  0x11
+ #define N821_CPLD_REG_PWR_TEST    0x20
+ 
+ #define N821_CPLD_I2C_REG_CTRL    0x2

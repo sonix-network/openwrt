@@ -1,0 +1,1104 @@
+From 87c20d7bb04972506d5269d5c879f5a7e94fbf33 Mon Sep 17 00:00:00 2001
+From: Christian Svensson <blue@cmd.nu>
+Date: Wed, 21 Jun 2023 11:59:42 +0200
+Subject: [PATCH] sonix: Add Niagara 821 CPLD support, version 0.1
+
+Functionally sort of complete patch. Enough for production for now.
+---
+ drivers/staging/Kconfig                  |   2 +
+ drivers/staging/Makefile                 |   1 +
+ drivers/staging/n821-cpld/Kconfig        |  58 +++++
+ drivers/staging/n821-cpld/Makefile       |  16 ++
+ drivers/staging/n821-cpld/cpld.h         |  28 +++
+ drivers/staging/n821-cpld/cpld_core.c    | 154 +++++++++++++
+ drivers/staging/n821-cpld/cpld_fan.c     | 116 ++++++++++
+ drivers/staging/n821-cpld/cpld_gpio.c    | 167 ++++++++++++++
+ drivers/staging/n821-cpld/cpld_i2c.c     | 266 +++++++++++++++++++++++
+ drivers/staging/n821-cpld/cpld_psu.c     | 135 ++++++++++++
+ drivers/staging/n821-cpld/mdio-i2c-gen.c |  92 ++++++++
+ 11 files changed, 1035 insertions(+)
+ create mode 100644 drivers/staging/n821-cpld/Kconfig
+ create mode 100644 drivers/staging/n821-cpld/Makefile
+ create mode 100644 drivers/staging/n821-cpld/cpld.h
+ create mode 100644 drivers/staging/n821-cpld/cpld_core.c
+ create mode 100644 drivers/staging/n821-cpld/cpld_fan.c
+ create mode 100644 drivers/staging/n821-cpld/cpld_gpio.c
+ create mode 100644 drivers/staging/n821-cpld/cpld_i2c.c
+ create mode 100644 drivers/staging/n821-cpld/cpld_psu.c
+ create mode 100644 drivers/staging/n821-cpld/mdio-i2c-gen.c
+
+--- a/drivers/staging/Kconfig
++++ b/drivers/staging/Kconfig
+@@ -78,4 +78,6 @@ source "drivers/staging/qlge/Kconfig"
+ 
+ source "drivers/staging/vme_user/Kconfig"
+ 
++source "drivers/staging/n821-cpld/Kconfig"
++
+ endif # STAGING
+--- a/drivers/staging/Makefile
++++ b/drivers/staging/Makefile
+@@ -28,3 +28,4 @@ obj-$(CONFIG_PI433)		+= pi433/
+ obj-$(CONFIG_XIL_AXIS_FIFO)	+= axis-fifo/
+ obj-$(CONFIG_FIELDBUS_DEV)     += fieldbus/
+ obj-$(CONFIG_QLGE)		+= qlge/
++obj-$(CONFIG_N821_CPLD) 	+= n821-cpld/
+--- /dev/null
++++ b/drivers/staging/n821-cpld/Kconfig
+@@ -0,0 +1,58 @@
++# SPDX-License-Identifier: GPL-2.0
++config N821_CPLD
++	tristate "Interface Masters Niagara 821 CPLD support"
++	depends on CAVIUM_OCTEON_SOC || COMPILE_TEST
++	select MFD_CORE
++	select REGMAP_IRQ
++	help
++	  TODO
++
++	  To compile this driver as a module, choose M here.  The module
++	  will be called n821-cpld.
++
++config DEBUG_N821_CPLD
++	bool "Build N821 CPLD drivers with debug enabled"
++	depends on N821_CPLD
++	help
++	  Say Y here to add extra diagnostics output to N821 CPLD drivers.
++
++config N821_CPLD_I2C
++	tristate "N821 CPLD I2C controller"
++	depends on N821_CPLD && I2C
++	select REGMAP_MMIO
++	select MDIO_I2C  # Needed for mdio-i2c-gen
++	help
++	  TODO
++
++	  To compile this driver as a module, choose M here.  The module
++	  will be called n821-cpld-i2c.
++
++config N821_CPLD_GPIO
++	tristate "N821 CPLD GPIO controller"
++	depends on N821_CPLD
++	select GPIO_REGMAP
++	help
++	  TODO
++
++	  To compile this driver as a module, choose M here.  The module
++	  will be called n821-cpld-gpio.
++
++config N821_CPLD_FAN
++	tristate "N821 CPLD fan sensor"
++	depends on N821_CPLD
++	select GPIO_REGMAP
++	help
++	  TODO
++
++	  To compile this driver as a module, choose M here.  The module
++	  will be called n821-cpld-fan.
++
++config N821_CPLD_PSU
++	tristate "N821 CPLD PSU sensor"
++	depends on N821_CPLD
++	select GPIO_REGMAP
++	help
++	  TODO
++
++	  To compile this driver as a module, choose M here.  The module
++	  will be called n821-cpld-psu.
+--- /dev/null
++++ b/drivers/staging/n821-cpld/Makefile
+@@ -0,0 +1,16 @@
++# SPDX-License-Identifier: GPL-2.0
++
++ccflags-$(CONFIG_DEBUG_N821_CPLD) += -DDEBUG
++
++obj-$(CONFIG_N821_CPLD)      += n821-cpld.o
++obj-$(CONFIG_N821_CPLD_FAN)  += n821-cpld-fan.o
++obj-$(CONFIG_N821_CPLD_GPIO) += n821-cpld-gpio.o
++obj-$(CONFIG_N821_CPLD_I2C)  += n821-cpld-i2c.o
++obj-$(CONFIG_N821_CPLD_I2C)  += mdio-i2c-gen.o
++obj-$(CONFIG_N821_CPLD_PSU)  += n821-cpld-psu.o
++
++n821-cpld-objs      := cpld_core.o
++n821-cpld-i2c-objs  := cpld_i2c.o
++n821-cpld-fan-objs  := cpld_fan.o
++n821-cpld-psu-objs  := cpld_psu.o
++n821-cpld-gpio-objs := cpld_gpio.o
+--- /dev/null
++++ b/drivers/staging/n821-cpld/cpld.h
+@@ -0,0 +1,28 @@
++#ifndef __HEADER__CPLD__
++#define __HEADER__CPLD__
++
++#include <linux/regmap.h>
++
++#define N821_CPLD_INT_IRQ_I2C       BIT(3)
++#define N821_CPLD_INT_IRQ_RESET_BTN BIT(6)
++#define N821_CPLD_INT_IRQ_OVERTEMP  BIT(7)
++
++#define N821_CPLD_REG_REVISION    0x2
++#define N821_CPLD_REG_PWR_CTRL    0x3
++#define N821_CPLD_REG_USB3_RST    0x4
++#define N821_CPLD_REG_PWR_STATUS  0x6
++#define N821_CPLD_REG_FAN0_SPEED  0x7
++#define N821_CPLD_REG_FAN1_SPEED  0x8
++#define N821_CPLD_REG_SFP_PRSNT   0x0B
++#define N821_CPLD_REG_IRQ_STATUS  0x10
++#define N821_CPLD_REG_IRQ_MASK    0x11
++
++#define N821_CPLD_I2C_REG_CTRL    0x2
++
++enum n821_cpld_irqs {
++  N821_CPLD_IRQ_I2C,
++  N821_CPLD_IRQ_RESET_BTN,
++  N821_CPLD_IRQ_OVERTEMP,
++};
++
++#endif
+--- /dev/null
++++ b/drivers/staging/n821-cpld/cpld_core.c
+@@ -0,0 +1,154 @@
++/*
++ * cpld.c - Interface Masters CPLD module for Niagara 821
++ */
++
++#include <linux/init.h>
++#include <linux/interrupt.h>
++#include <linux/kernel.h>
++#include <linux/mfd/core.h>
++#include <linux/module.h>
++#include <linux/of.h>
++#include <linux/of_address.h>
++#include <linux/of_irq.h>
++#include <linux/of_platform.h>
++#include <linux/platform_device.h>
++#include <linux/printk.h>
++#include <linux/mfd/syscon.h>
++#include <linux/regmap.h>
++
++#include "cpld.h"
++
++struct n821_cpld_data {
++  struct device *dev;
++  struct regmap_irq_chip_data *irqdata;
++};
++
++static int n821_cpld_irq_pre(void * __unused)
++{
++  pr_info("n821_cpld_irq_pre called");
++  return 0;
++}
++
++static const struct regmap_irq n821_cpld_irq_map[] = {
++  REGMAP_IRQ_REG(N821_CPLD_IRQ_I2C, 0, N821_CPLD_INT_IRQ_I2C),
++  REGMAP_IRQ_REG(N821_CPLD_IRQ_RESET_BTN, 0, N821_CPLD_INT_IRQ_RESET_BTN),
++  REGMAP_IRQ_REG(N821_CPLD_IRQ_OVERTEMP, 0, N821_CPLD_INT_IRQ_OVERTEMP),
++};
++
++static const struct regmap_irq_chip n821_cpld_irq_chip = {
++  .name            = "n821-cpld-ic",
++  .status_base     = N821_CPLD_REG_IRQ_STATUS,
++  .mask_base       = N821_CPLD_REG_IRQ_MASK,
++  .ack_base        = N821_CPLD_REG_IRQ_STATUS,
++  .mask_invert     = true,
++  .num_regs        = 1,
++  .init_ack_masked = 1,
++  .irqs            = n821_cpld_irq_map,
++  .num_irqs        = ARRAY_SIZE(n821_cpld_irq_map),
++  .handle_pre_irq  = n821_cpld_irq_pre,
++};
++
++static ssize_t
++cpld_rev_show(struct device *dev, struct device_attribute *attr, char *buf)
++{
++  struct regmap *regmap = syscon_node_to_regmap(dev->of_node);
++  int rev = 0;
++  int ret = regmap_read(regmap, N821_CPLD_REG_REVISION, &rev);
++  if (ret < 0) {
++    return ret;
++  }
++  return snprintf(buf, PAGE_SIZE, "%d\n", rev & 0xf);
++}
++
++static DEVICE_ATTR_RO(cpld_rev);
++
++static struct attribute *n821_cpld_attrs[] = {
++  &dev_attr_cpld_rev.attr,
++  NULL
++};
++
++static struct attribute_group n821_cpld_group = {
++      .attrs = n821_cpld_attrs,
++};
++
++static void n821_cpld_enable_usb3(struct device *dev)
++{
++  // Ensure USB3 is enabled
++  struct regmap *regmap = syscon_node_to_regmap(dev->of_node);
++  regmap_write(regmap, N821_CPLD_REG_USB3_RST, 0);
++}
++
++static int n821_cpld_probe(struct platform_device *pdev)
++{
++  struct device *dev = &pdev->dev;
++  struct regmap *regmap;
++  struct n821_cpld_data *drvdata;
++  int irq;
++  int ret;
++
++  regmap = syscon_node_to_regmap(dev->of_node);
++  if (IS_ERR(regmap)) {
++    dev_err(dev, "cannot get regmap\n");
++    return PTR_ERR(regmap);
++  }
++
++  irq = irq_of_parse_and_map(dev->of_node, 0);
++  if (!irq) {
++    dev_err(dev, "no IRQ found\n");
++    return -ENODEV;
++  }
++
++  drvdata = devm_kzalloc(dev, sizeof(struct n821_cpld_data), GFP_KERNEL);
++  if (drvdata == NULL) {
++    return -ENOMEM;
++  }
++  drvdata->dev = dev;
++  drvdata->irqdata = NULL;
++  dev_set_drvdata(dev, drvdata);
++
++  ret = devm_regmap_add_irq_chip_fwnode(dev, dev_fwnode(dev), regmap, irq, IRQF_ONESHOT, 0, &n821_cpld_irq_chip, &drvdata->irqdata);
++  if (ret) {
++    dev_err(dev, "failed to add IRQ chip: %d\n", ret);
++    return ret;
++  }
++
++  dev_info(dev, "probed");
++
++  ret = devm_of_platform_populate(dev);
++  if (ret) {
++    dev_err(dev, "populate platform failed: %d\n", ret);
++    return ret;
++  }
++
++  n821_cpld_enable_usb3(dev);
++  return devm_device_add_group(dev, &n821_cpld_group);
++}
++
++static int n821_cpld_remove(struct platform_device *pdev)
++{
++  return 0;
++}
++
++
++static struct of_device_id n821_cpld_match_table[] = {
++  { .compatible = "n821,cpld" },
++  { }
++};
++
++
++static struct platform_driver n821_cpld_platform_driver = {
++  .probe = n821_cpld_probe,
++  .remove = n821_cpld_remove,
++  .driver = {
++    .name = "n821-cpld",
++    .owner = THIS_MODULE,
++    .of_match_table = of_match_ptr(n821_cpld_match_table),
++  },
++};
++
++module_platform_driver(n821_cpld_platform_driver);
++
++MODULE_DEVICE_TABLE(of, n821_cpld_match_table);
++MODULE_DESCRIPTION("Niagara 821 CPLD driver");
++MODULE_AUTHOR("Christian Svensson <blue@cmd.nu>");
++MODULE_LICENSE("GPL");
+--- /dev/null
++++ b/drivers/staging/n821-cpld/cpld_fan.c
+@@ -0,0 +1,116 @@
++/*
++ * cpld-fan.c - fan part of the CPLD for Niagara 821
++ */
++
++#include <linux/hwmon.h>
++#include <linux/init.h>
++#include <linux/interrupt.h>
++#include <linux/kernel.h>
++#include <linux/module.h>
++#include <linux/of.h>
++#include <linux/platform_device.h>
++#include <linux/printk.h>
++#include <linux/property.h>
++#include <linux/mfd/syscon.h>
++
++#include "cpld.h"
++
++
++struct n821_cpld_fan_data {
++  struct regmap *regmap;
++  u32 offset;
++};
++
++static umode_t n821_cpld_fan_is_visible(const void *data,
++    enum hwmon_sensor_types type,
++    u32 attr, int channel)
++{
++  return 0444;
++}
++
++static int n821_cpld_fan_read(struct device *dev,
++    enum hwmon_sensor_types type, u32 attr,
++    int channel, long *input)
++{
++  struct n821_cpld_fan_data *fan = dev_get_drvdata(dev);
++  unsigned int value;
++  int ret;
++  switch (attr) {
++    case hwmon_fan_input:
++      ret = regmap_read(fan->regmap, fan->offset + channel, &value);
++      if (ret)
++        return ret;
++      value *= 60;
++      break;
++    default:
++      return -EOPNOTSUPP;
++  }
++  *input = value;
++  return 0;
++}
++
++static const struct hwmon_channel_info *n821_cpld_fan_info[] = {
++  HWMON_CHANNEL_INFO(fan, HWMON_F_INPUT, HWMON_F_INPUT),
++  NULL
++};
++
++static const struct hwmon_ops n821_cpld_fan_ops = {
++  .is_visible = n821_cpld_fan_is_visible,
++  .read = n821_cpld_fan_read,
++};
++
++static const struct hwmon_chip_info n821_cpld_fan_chip_info = {
++  .ops = &n821_cpld_fan_ops,
++  .info = n821_cpld_fan_info,
++};
++
++static int n821_cpld_fan_probe(struct platform_device *pdev)
++{
++  struct device *dev = &pdev->dev;
++  struct n821_cpld_fan_data *fan;
++  struct device *hwmon_dev;
++
++  fan = devm_kzalloc(dev, sizeof(*fan), GFP_KERNEL);
++  if (!fan)
++    return -ENOMEM;
++
++  fan->regmap = syscon_node_to_regmap(dev->of_node->parent);
++  if (IS_ERR(fan->regmap)) {
++    dev_err(dev, "failed to lookup regmap\n");
++    return PTR_ERR(fan->regmap);
++  }
++
++  fan->offset = N821_CPLD_REG_FAN0_SPEED;
++
++  hwmon_dev = devm_hwmon_device_register_with_info(&pdev->dev,
++      "n821_fan", fan, &n821_cpld_fan_chip_info, NULL);
++  if (IS_ERR(hwmon_dev))
++    dev_err(&pdev->dev, "failed to register as hwmon device");
++  dev_info(dev, "probed");
++  return PTR_ERR_OR_ZERO(hwmon_dev);
++}
++
++static int n821_cpld_fan_remove(struct platform_device *pdev)
++{
++  return 0;
++}
++
++static struct of_device_id n821_cpld_fan_match_table[] = {
++  { .compatible = "n821,cpld-fan" },
++  { }
++};
++
++static struct platform_driver n821_cpld_fan_driver = {
++        .driver = {
++                .name = "n821-cpld-fan",
++                .of_match_table = of_match_ptr(n821_cpld_fan_match_table),
++        },
++        .probe = n821_cpld_fan_probe,
++        .remove = n821_cpld_fan_remove,
++};
++module_platform_driver(n821_cpld_fan_driver);
++
++MODULE_DEVICE_TABLE(of, n821_cpld_fan_match_table);
++MODULE_DESCRIPTION("Niagara 821 CPLD fan driver");
++MODULE_AUTHOR("Christian Svensson <blue@cmd.nu>");
++MODULE_LICENSE("GPL");
+--- /dev/null
++++ b/drivers/staging/n821-cpld/cpld_gpio.c
+@@ -0,0 +1,167 @@
++/*
++ * cpld-gpio.c - SFP GPIO part of the CPLD for Niagara 821
++ */
++
++
++#include <linux/gpio/driver.h>
++#include <linux/gpio/regmap.h>
++#include <linux/init.h>
++#include <linux/interrupt.h>
++#include <linux/kernel.h>
++#include <linux/module.h>
++#include <linux/of.h>
++#include <linux/platform_device.h>
++#include <linux/printk.h>
++#include <linux/property.h>
++#include <linux/mfd/syscon.h>
++
++#include "cpld.h"
++
++
++const char *n821_cpld_gpio_names[] = {
++  /* 0  */ "mod-present Ge0/6",
++  /* 1  */ "mod-present Ge0/7",
++  /* 2  */ "mod-present Ge0/4",
++  /* 3  */ "mod-present Ge0/5",
++  /* 4  */ "mod-present Ge0/2",
++  /* 5  */ "mod-present Ge0/3",
++  /* 6  */ "mod-present Ge0/0",
++  /* 7  */ "mod-present Ge0/1",
++  /* 8  */ "tx-disable Ge0/6",
++  /* 9  */ "tx-disable Ge0/7",
++  /* 10 */ "tx-disable Ge0/4",
++  /* 11 */ "tx-disable Ge0/5",
++  /* 12 */ "tx-disable Ge0/2",
++  /* 13 */ "tx-disable Ge0/3",
++  /* 14 */ "tx-disable Ge0/0",
++  /* 15 */ "tx-disable Ge0/1",
++  /* 16 */ "los Ge0/6",
++  /* 17 */ "los Ge0/7",
++  /* 18 */ "los Ge0/4",
++  /* 19 */ "los Ge0/5",
++  /* 20 */ "los Ge0/2",
++  /* 21 */ "los Ge0/3",
++  /* 22 */ "los Ge0/0",
++  /* 23 */ "los Ge0/1",
++  /* 24 */ "tx-fault Ge0/6",
++  /* 25 */ "tx-fault Ge0/7",
++  /* 26 */ "tx-fault Ge0/4",
++  /* 27 */ "tx-fault Ge0/5",
++  /* 28 */ "tx-fault Ge0/2",
++  /* 29 */ "tx-fault Ge0/3",
++  /* 30 */ "tx-fault Ge0/0",
++  /* 31 */ "tx-fault Ge0/1",
++};
++
++int n821_cpld_gpio_dir[] = {
++  GPIO_LINE_DIRECTION_IN,
++  GPIO_LINE_DIRECTION_IN,
++  GPIO_LINE_DIRECTION_IN,
++  GPIO_LINE_DIRECTION_IN,
++  GPIO_LINE_DIRECTION_IN,
++  GPIO_LINE_DIRECTION_IN,
++  GPIO_LINE_DIRECTION_IN,
++  GPIO_LINE_DIRECTION_IN,
++  GPIO_LINE_DIRECTION_OUT,
++  GPIO_LINE_DIRECTION_OUT,
++  GPIO_LINE_DIRECTION_OUT,
++  GPIO_LINE_DIRECTION_OUT,
++  GPIO_LINE_DIRECTION_OUT,
++  GPIO_LINE_DIRECTION_OUT,
++  GPIO_LINE_DIRECTION_OUT,
++  GPIO_LINE_DIRECTION_OUT,
++  GPIO_LINE_DIRECTION_IN,
++  GPIO_LINE_DIRECTION_IN,
++  GPIO_LINE_DIRECTION_IN,
++  GPIO_LINE_DIRECTION_IN,
++  GPIO_LINE_DIRECTION_IN,
++  GPIO_LINE_DIRECTION_IN,
++  GPIO_LINE_DIRECTION_IN,
++  GPIO_LINE_DIRECTION_IN,
++  GPIO_LINE_DIRECTION_IN,
++  GPIO_LINE_DIRECTION_IN,
++  GPIO_LINE_DIRECTION_IN,
++  GPIO_LINE_DIRECTION_IN,
++  GPIO_LINE_DIRECTION_IN,
++  GPIO_LINE_DIRECTION_IN,
++  GPIO_LINE_DIRECTION_IN,
++  GPIO_LINE_DIRECTION_IN
++};
++
++static int n821_cpld_gpio_xlate(struct gpio_regmap *gpio, unsigned int base,
++    unsigned int offset, unsigned int *reg,
++    unsigned int *mask)
++{
++  unsigned int line = offset % 8;
++  unsigned int stride = offset / 8;
++  int dir = n821_cpld_gpio_dir[offset];
++
++  if (base != 0) {
++    *reg = base + stride;
++    *mask = BIT(line);
++    return 0;
++  }
++  // In/out directions are hard-coded for our GPIO controller
++  // Map these read/writes to read-only buffers (in our case, the ID reg)
++  // For N821 the ID reg is 0x7C, so we can use 0x10 as the mask for DIR_IN
++  *reg = 0;
++  if (dir == GPIO_LINE_DIRECTION_OUT) {
++    *mask = 0x10;
++  } else {
++    *mask = 0;
++  }
++  return 0;
++}
++
++static int n821_cpld_gpio_probe(struct platform_device *pdev)
++{
++  struct device *dev = &pdev->dev;
++  struct gpio_regmap_config config = {};
++  struct regmap *regmap;
++  int ret;
++
++  regmap = syscon_node_to_regmap(dev->of_node->parent);
++  if (IS_ERR(regmap)) {
++    dev_err(dev, "failed to lookup regmap\n");
++    return PTR_ERR(regmap);
++  }
++
++  config.regmap = regmap;
++  config.parent = dev;
++  config.names = n821_cpld_gpio_names;
++  config.ngpio = ARRAY_SIZE(n821_cpld_gpio_names);
++  config.ngpio_per_reg = 8;
++  config.reg_dat_base = N821_CPLD_REG_SFP_PRSNT;
++  config.reg_set_base = N821_CPLD_REG_SFP_PRSNT;
++  config.reg_dir_out_base = GPIO_REGMAP_ADDR_ZERO;
++  config.reg_mask_xlate = n821_cpld_gpio_xlate;
++
++  ret = PTR_ERR_OR_ZERO(devm_gpio_regmap_register(dev, &config));
++  dev_info(dev, "probed");
++  return ret;
++}
++
++static int n821_cpld_gpio_remove(struct platform_device *pdev)
++{
++  return 0;
++}
++
++static struct of_device_id n821_cpld_gpio_match_table[] = {
++  { .compatible = "n821,cpld-gpio" },
++  { }
++};
++
++static struct platform_driver n821_cpld_gpio_driver = {
++  .driver = {
++    .name = "n821-cpld-gpio",
++    .of_match_table = of_match_ptr(n821_cpld_gpio_match_table),
++  },
++  .probe = n821_cpld_gpio_probe,
++  .remove = n821_cpld_gpio_remove,
++};
++module_platform_driver(n821_cpld_gpio_driver);
++
++MODULE_DEVICE_TABLE(of, n821_cpld_gpio_match_table);
++MODULE_DESCRIPTION("Niagara 821 CPLD GPIO driver");
++MODULE_AUTHOR("Christian Svensson <blue@cmd.nu>");
++MODULE_LICENSE("GPL");
+--- /dev/null
++++ b/drivers/staging/n821-cpld/cpld_i2c.c
+@@ -0,0 +1,266 @@
++/*
++ * cpld-i2c.c - I2C part of the CPLD for Niagara 821
++ */
++
++#include <linux/init.h>
++#include <linux/interrupt.h>
++#include <linux/kernel.h>
++#include <linux/module.h>
++#include <linux/of.h>
++#include <linux/of_address.h>
++#include <linux/of_irq.h>
++#include <linux/platform_device.h>
++#include <linux/printk.h>
++#include <linux/i2c.h>
++#include <linux/i2c-algo-bit.h>
++
++#include "cpld.h"
++
++struct n821_cpld_i2c_data {
++  struct device *dev;
++  void __iomem *base;
++  struct regmap *regmap;
++  struct i2c_adapter       adap;
++  struct i2c_algo_bit_data algo;
++};
++
++
++static void n821_cpld_i2c_set_scl(struct i2c_adapter *adap, int state)
++{
++  // TODO
++}
++
++static int n821_cpld_i2c_get_scl(struct i2c_adapter *adap)
++{
++  // TODO
++  return -ENOTSUPP;
++}
++
++static int n821_cpld_i2c_xfer_polling(struct i2c_adapter *adap,
++    struct i2c_msg *msgs, int num)
++{
++  struct n821_cpld_i2c_data *i2c = i2c_get_adapdata(adap);
++  int count;
++
++  for (count = 0; count < num; count++, msgs++) {
++    regmap_write(i2c->regmap, 0x4, i2c_8bit_addr_from_msg(msgs));
++    if (msgs->len == 0) {
++      regmap_write(i2c->regmap, 0x0, 0x81);
++    } else if (msgs->flags & I2C_M_RD) {
++      if (msgs->len == 1) {
++        regmap_write(i2c->regmap, 0x0, 0xc1);
++      } else if (msgs->len == 2) {
++        regmap_write(i2c->regmap, 0x0, 0xf1);
++      } else if (msgs->len == 3) {
++        regmap_write(i2c->regmap, 0x0, 0xfd);
++      } else {
++        goto err_unsupp;
++      }
++    } else {
++      if (msgs->len == 1) {
++        regmap_write(i2c->regmap, 0x7, msgs->buf[0]);
++        regmap_write(i2c->regmap, 0x0, 0x41);
++      } else if (msgs->len == 2) {
++        regmap_write(i2c->regmap, 0x6, msgs->buf[0]);
++        regmap_write(i2c->regmap, 0x7, msgs->buf[1]);
++        regmap_write(i2c->regmap, 0x0, 0x51);
++      } else if (msgs->len == 3) {
++        regmap_write(i2c->regmap, 0x5, msgs->buf[0]);
++        regmap_write(i2c->regmap, 0x6, msgs->buf[1]);
++        regmap_write(i2c->regmap, 0x7, msgs->buf[2]);
++        regmap_write(i2c->regmap, 0x0, 0x55);
++      } else {
++        goto err_unsupp;
++      }
++    }
++
++    {
++      int sleep;
++      int status = 0;
++      for (sleep = 10; sleep > 0; sleep--) {
++        regmap_read(i2c->regmap, 0x1, &status);
++        if ((status & 0x2) != 0) {
++          break;
++        }
++        usleep_range(5, 10);
++      }
++      if (status & 0x8) {
++        // NACK
++        dev_err(i2c->dev, "i2c xfer: id %d; addr: 0x%02x; NACK\n", count, msgs->addr);
++        return -EIO;
++      }
++      if (sleep == 0) {
++        pr_info("n821 xfer timed out, last status 0x%02x", status);
++      }
++    }
++
++    if (msgs->len > 0 && (msgs->flags & I2C_M_RD)) {
++      unsigned int val = 0;
++      if (msgs->len == 1) {
++        regmap_read(i2c->regmap, 0x7, &val);
++        msgs->buf[0] = val & 0xff;
++      } else if (msgs->len == 2) {
++        regmap_read(i2c->regmap, 0x6, &val);
++        msgs->buf[0] = val & 0xff;
++        regmap_read(i2c->regmap, 0x7, &val);
++        msgs->buf[1] = val & 0xff;
++      } else if (msgs->len == 3) {
++        regmap_read(i2c->regmap, 0x5, &val);
++        msgs->buf[0] = val & 0xff;
++        regmap_read(i2c->regmap, 0x6, &val);
++        msgs->buf[1] = val & 0xff;
++        regmap_read(i2c->regmap, 0x7, &val);
++        msgs->buf[2] = val & 0xff;
++      } else {
++        goto err_unsupp;
++      }
++    }
++  }
++  return count;
++err_unsupp:
++  dev_err(
++      i2c->dev, "i2c xfer: id %d; addr: 0x%02x; flags: 0x%02x; len: 0x%02x\n",
++      count, msgs->addr, msgs->flags, msgs->len);
++  return -ENOTSUPP;
++}
++
++static u32 n821_cpld_i2c_functionallity(struct i2c_adapter *adap)
++{
++  return I2C_FUNC_I2C | I2C_FUNC_SMBUS_EMUL;
++}
++
++static struct i2c_algorithm n821_cpld_i2c_algorithm = {
++  .master_xfer = n821_cpld_i2c_xfer_polling,
++  .master_xfer_atomic = n821_cpld_i2c_xfer_polling,
++  .functionality = n821_cpld_i2c_functionallity,
++};
++
++static struct i2c_bus_recovery_info n821_cpld_i2c_recovery_info = {
++  .get_scl = n821_cpld_i2c_get_scl,
++  .set_scl = n821_cpld_i2c_set_scl,
++};
++
++#if 0
++static const struct i2c_adapter_quirks n821_cpld_i2c_quirks = {
++};
++#endif
++
++static const struct i2c_adapter n821_cpld_i2c_adapter = {
++  .owner = THIS_MODULE,
++  .name = "n821-cpld-i2c",
++  .algo = &n821_cpld_i2c_algorithm,
++  .bus_recovery_info = &n821_cpld_i2c_recovery_info,
++#if 0
++  .quirks = &n821_cpld_i2c_quirks,
++#endif
++};
++
++
++static bool n821_cpld_i2c_is_volatile_reg(struct device *dev, unsigned int reg)
++{
++  return true;
++}
++
++static const struct regmap_config n821_cpld_i2c_regmap_config = {
++  .reg_bits = 8,
++  .val_bits = 8,
++  .max_register = 0x8,
++  .volatile_reg = n821_cpld_i2c_is_volatile_reg,
++};
++
++#ifdef __I2C_IRQ__
++static irqreturn_t n821_cpld_i2c_interrupt(int irq, void *priv) {
++  pr_info("got I2C interrupt 0x%x!", irq);
++  disable_irq(irq);
++  return IRQ_HANDLED;
++}
++#endif
++
++static int n821_cpld_i2c_probe(struct platform_device *pdev)
++{
++  struct device *dev = &pdev->dev;
++  struct regmap *regmap;
++  struct n821_cpld_i2c_data *drvdata;
++  void __iomem *reg_base;
++  int ret = 0;
++  int irq;
++
++  reg_base = devm_of_iomap(dev, dev->of_node, 0, NULL);
++  if (IS_ERR(reg_base)) {
++    dev_err(dev, "failed to lock memory region");
++    return PTR_ERR(reg_base);
++  }
++
++  regmap = devm_regmap_init_mmio(dev, reg_base, &n821_cpld_i2c_regmap_config);
++  if (IS_ERR(regmap)) {
++    dev_err(dev, "failed to create regmap");
++    return PTR_ERR(reg_base);
++  }
++
++  irq = irq_of_parse_and_map(dev->of_node, 0);
++  if (!irq) {
++    dev_err(dev, "no IRQ found\n");
++    return -ENODEV;
++  }
++
++  drvdata = devm_kzalloc(dev, sizeof(struct n821_cpld_i2c_data), GFP_KERNEL);
++  if (drvdata == NULL) {
++    return -ENOMEM;
++  }
++  drvdata->dev = dev;
++  drvdata->base = reg_base;
++  drvdata->regmap = regmap;
++  dev_set_drvdata(dev, drvdata);
++
++  // Set 100 kHz speed on I2C
++  regmap_write(regmap, N821_CPLD_I2C_REG_CTRL, 0x4c);
++
++#ifdef __I2C_IRQ__
++  ret = devm_request_threaded_irq(dev, irq, NULL, n821_cpld_i2c_interrupt, IRQF_TRIGGER_HIGH | IRQF_ONESHOT, "n821-cpld-i2c", dev);
++  if (ret) {
++    dev_err(dev, "failed to request IRQ handler: %d", ret);
++    return ret;
++  }
++#endif
++
++  drvdata->adap = n821_cpld_i2c_adapter;
++  i2c_set_adapdata(&drvdata->adap, drvdata);
++  drvdata->adap.dev.parent = dev;
++  drvdata->adap.dev.of_node = dev->of_node;
++  drvdata->adap.nr = pdev->id;
++  ret = i2c_add_adapter(&drvdata->adap);
++  if (ret < 0) {
++    dev_err(dev, "failed to add I2C adapter: %d", ret);
++    return ret;
++  }
++
++  dev_info(dev, "probed, base = %px", reg_base);
++  return 0;
++}
++
++static int n821_cpld_i2c_remove(struct platform_device *pdev)
++{
++  struct n821_cpld_i2c_data *drvdata = platform_get_drvdata(pdev);
++  i2c_del_adapter(&drvdata->adap);
++  return 0;
++}
++
++static struct of_device_id n821_cpld_i2c_match_table[] = {
++  { .compatible = "n821,cpld-i2c" },
++  { }
++};
++
++static struct platform_driver n821_cpld_i2_driver = {
++        .driver = {
++                .name = "n821-cpld-i2c",
++                .of_match_table = of_match_ptr(n821_cpld_i2c_match_table),
++        },
++        .probe = n821_cpld_i2c_probe,
++        .remove = n821_cpld_i2c_remove,
++};
++module_platform_driver(n821_cpld_i2_driver);
++
++MODULE_DEVICE_TABLE(of, n821_cpld_i2c_match_table);
++MODULE_DESCRIPTION("Niagara 821 CPLD I2C driver");
++MODULE_AUTHOR("Christian Svensson <blue@cmd.nu>");
++MODULE_LICENSE("GPL");
+--- /dev/null
++++ b/drivers/staging/n821-cpld/cpld_psu.c
+@@ -0,0 +1,135 @@
++/*
++ * cpld-psu.c - PSU part of the CPLD for Niagara 821
++ */
++
++#include <linux/hwmon.h>
++#include <linux/init.h>
++#include <linux/interrupt.h>
++#include <linux/kernel.h>
++#include <linux/module.h>
++#include <linux/of.h>
++#include <linux/platform_device.h>
++#include <linux/printk.h>
++#include <linux/property.h>
++#include <linux/mfd/syscon.h>
++
++#include "cpld.h"
++
++
++struct n821_cpld_psu_data {
++  struct regmap *regmap;
++  u32 offset;
++};
++
++static umode_t n821_cpld_psu_is_visible(const void *data,
++    enum hwmon_sensor_types type,
++    u32 attr, int channel)
++{
++  return 0444;
++}
++
++static int n821_cpld_psu_read(struct device *dev,
++    enum hwmon_sensor_types type, u32 attr,
++    int channel, long *input)
++{
++  struct n821_cpld_psu_data *psu = dev_get_drvdata(dev);
++  unsigned int busbar;
++  unsigned int fault;
++  unsigned int value;
++  int ret;
++
++  ret = regmap_read(psu->regmap, psu->offset, &value);
++  if (ret)
++    return ret;
++
++  if (channel == 0) {
++    busbar = (value & 0x8) != 0;
++    fault = (value & 0x2) != 0;
++  } else if (channel == 1) {
++    busbar = (value & 0x4) != 0;
++    fault = (value & 0x1) != 0;
++  } else {
++    return -EINVAL;
++  }
++
++  switch (attr) {
++    case hwmon_in_enable:
++      *input = busbar;
++      break;
++    case hwmon_in_alarm:
++      *input = fault;
++      break;
++    case hwmon_in_input:
++      *input = (12 * 1000) * busbar;
++      break;
++    default:
++      return -EOPNOTSUPP;
++  }
++  return 0;
++}
++
++static const struct hwmon_channel_info *n821_cpld_psu_info[] = {
++  HWMON_CHANNEL_INFO(in, HWMON_I_ENABLE | HWMON_I_ALARM | HWMON_I_INPUT,
++                         HWMON_I_ENABLE | HWMON_I_ALARM | HWMON_I_INPUT),
++  NULL
++};
++
++static const struct hwmon_ops n821_cpld_psu_ops = {
++  .is_visible = n821_cpld_psu_is_visible,
++  .read = n821_cpld_psu_read,
++};
++
++static const struct hwmon_chip_info n821_cpld_psu_chip_info = {
++  .ops = &n821_cpld_psu_ops,
++  .info = n821_cpld_psu_info,
++};
++
++static int n821_cpld_psu_probe(struct platform_device *pdev)
++{
++  struct device *dev = &pdev->dev;
++  struct n821_cpld_psu_data *psu;
++  struct device *hwmon_dev;
++
++  psu = devm_kzalloc(dev, sizeof(*psu), GFP_KERNEL);
++  if (!psu)
++    return -ENOMEM;
++
++  psu->regmap = syscon_node_to_regmap(dev->of_node->parent);
++  if (IS_ERR(psu->regmap)) {
++    dev_err(dev, "failed to lookup regmap\n");
++    return PTR_ERR(psu->regmap);
++  }
++
++  psu->offset = N821_CPLD_REG_PWR_STATUS;
++  hwmon_dev = devm_hwmon_device_register_with_info(&pdev->dev,
++      "n821_psu", psu, &n821_cpld_psu_chip_info, NULL);
++  if (IS_ERR(hwmon_dev))
++    dev_err(&pdev->dev, "failed to register as hwmon device");
++  dev_info(dev, "probed");
++  return PTR_ERR_OR_ZERO(hwmon_dev);
++}
++
++static int n821_cpld_psu_remove(struct platform_device *pdev)
++{
++  return 0;
++}
++
++static struct of_device_id n821_cpld_psu_match_table[] = {
++  { .compatible = "n821,cpld-psu" },
++  { }
++};
++
++static struct platform_driver n821_cpld_psu_driver = {
++        .driver = {
++                .name = "n821-cpld-psu",
++                .of_match_table = of_match_ptr(n821_cpld_psu_match_table),
++        },
++        .probe = n821_cpld_psu_probe,
++        .remove = n821_cpld_psu_remove,
++};
++module_platform_driver(n821_cpld_psu_driver);
++
++MODULE_DEVICE_TABLE(of, n821_cpld_psu_match_table);
++MODULE_DESCRIPTION("Niagara 821 CPLD psu driver");
++MODULE_AUTHOR("Christian Svensson <blue@cmd.nu>");
++MODULE_LICENSE("GPL");
+--- /dev/null
++++ b/drivers/staging/n821-cpld/mdio-i2c-gen.c
+@@ -0,0 +1,92 @@
++/*
++ * I2C-based MDIO PHY driver.
++ *
++ * Copyright (c) 2020 iVeia
++ *
++ * This file is licensed under the terms of the GNU General Public License
++ * version 2. This program is licensed "as is" without any warranty of any
++ * kind, whether express or implied.
++ */
++#include <linux/module.h>
++#include <linux/of.h>
++#include <linux/i2c.h>
++#include <linux/of_mdio.h>
++#include <linux/mdio/mdio-i2c.h>
++
++static int mdio_i2c_gen_probe(struct i2c_client *client,
++				 const struct i2c_device_id *id)
++{
++	struct device *dev = &client->dev;
++	struct device_node *np = dev->of_node;
++	struct device_node *phy_node;
++	struct mii_bus *bus;
++	unsigned int phy_addr;
++	unsigned int i2c_addr;
++	int ret;
++
++	bus = mdio_i2c_alloc(dev, client->adapter, MDIO_I2C_NONE);
++	if (IS_ERR(bus)){
++		return PTR_ERR(bus);
++	}
++	bus->name = "I2C-based MDIO PHY";
++	bus->parent = dev;
++
++	/*
++	 * Each I2C mdio node must have exactly one child phy whose phy address is
++	 * a fixed offset from the I2C address.  In addition, phy addresses 0x10
++	 * and 0x11 are not allowed.  These are restrictions of the mdio-i2c
++	 * library for SFP support, which is uneeded here - however we use the
++	 * mdio-i2c library for convenience.
++	 */
++	if (of_get_child_count(np) != 1) {
++		dev_warn(dev, "MDIO node must have exactly one child PHY node\n");
++		return  -EINVAL;
++	}
++
++	phy_node = of_get_next_child(np, NULL);
++	if (phy_node == NULL)
++		return -ENODEV;
++
++	ret = of_property_read_u32(np, "reg", &i2c_addr);
++	if (ret)
++		return ret;
++	ret = of_property_read_u32(phy_node, "reg", &phy_addr);
++	if (ret)
++		return ret;
++	if (phy_addr + 0x40 != i2c_addr) {
++		dev_warn(dev, "MDIO I2C addr must be PHY addr + 0x40\n");
++		return  -EINVAL;
++	}
++	if (phy_addr == 0x10 || phy_addr == 0x11) {
++		dev_warn(dev, "MDIO PHY addr must NOT be 0x10 or 0x11\n");
++		return  -EINVAL;
++	}
++
++	return of_mdiobus_register(bus, np);
++}
++
++static void mdio_i2c_gen_remove(struct i2c_client *client)
++{
++	/* nothing to do */
++}
++
++static const struct of_device_id mdio_i2c_gen_of_match[] = {
++	{ .compatible = "mdio-i2c-gen", },
++	{ }
++};
++MODULE_DEVICE_TABLE(of, mdio_i2c_gen_of_match);
++
++static struct i2c_driver mdio_i2c_gen_driver = {
++	.driver = {
++		.name	= "mdio-i2c-gen",
++		.of_match_table = of_match_ptr(mdio_i2c_gen_of_match),
++	},
++	.probe		= mdio_i2c_gen_probe,
++	.remove	= mdio_i2c_gen_remove,
++};
++
++module_i2c_driver(mdio_i2c_gen_driver);
++
++MODULE_AUTHOR("Brian Silverman <bsilverman@iveia.com>");
++MODULE_LICENSE("GPL");
++MODULE_DESCRIPTION("Generic driver for MDIO bus over I2C");
