@@ -745,3 +745,33 @@ endef
 $(eval $(call KernelPackage,hwmon-adcxx))
 
 
+define KernelPackage/hwmon-n821-cpld-fan
+  TITLE:=N821 CPLD Fan sensor
+  KCONFIG:=CONFIG_N821_CPLD_FAN
+  FILES:=$(LINUX_DIR)/drivers/staging/n821-cpld/n821-cpld-fan.ko
+  AUTOLOAD:=$(call AutoLoad,60,n821-cpld-fan)
+  $(call AddDepends/hwmon,)
+endef
+
+define KernelPackage/hwmon-n821-cpld-fan/description
+  Kernel module for the fan sensors from the N821 CPLD.
+endef
+
+$(eval $(call KernelPackage,hwmon-n821-cpld-fan))
+
+
+define KernelPackage/hwmon-n821-cpld-psu
+  TITLE:=N821 CPLD Power supply sensor
+  KCONFIG:=CONFIG_N821_CPLD_PSU
+  FILES:=$(LINUX_DIR)/drivers/staging/n821-cpld/n821-cpld-psu.ko
+  AUTOLOAD:=$(call AutoLoad,60,n821-cpld-psu)
+  $(call AddDepends/hwmon,)
+endef
+
+define KernelPackage/hwmon-n821-cpld-psu/description
+  Kernel module for the power supply sensors from the N821 CPLD.
+endef
+
+$(eval $(call KernelPackage,hwmon-n821-cpld-psu))
+
+
