@@ -1,0 +1,18 @@
+From 35f1753d9f213517d25bfec7a43185df3962abe4 Mon Sep 17 00:00:00 2001
+From: Christian Svensson <blue@cmd.nu>
+Date: Tue, 11 Jul 2023 12:23:50 +0200
+Subject: [PATCH] sonix: always include n821-cpld staging driver in Kconfig for
+ now
+
+---
+ drivers/staging/Makefile | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+--- a/drivers/staging/Makefile
++++ b/drivers/staging/Makefile
+@@ -28,4 +28,4 @@ obj-$(CONFIG_PI433)		+= pi433/
+ obj-$(CONFIG_XIL_AXIS_FIFO)	+= axis-fifo/
+ obj-$(CONFIG_FIELDBUS_DEV)     += fieldbus/
+ obj-$(CONFIG_QLGE)		+= qlge/
+-obj-$(CONFIG_N821_CPLD) 	+= n821-cpld/
++obj-y 				+= n821-cpld/
