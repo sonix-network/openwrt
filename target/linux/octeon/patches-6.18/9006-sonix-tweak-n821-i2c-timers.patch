@@ -1,0 +1,30 @@
+From 7dfc4e4e328956698a44c79d8d5b51e6fdedbc10 Mon Sep 17 00:00:00 2001
+From: Christian Svensson <blue@cmd.nu>
+Date: Thu, 22 Jun 2023 16:48:28 +0200
+Subject: [PATCH] sonix: tweak n821 i2c timers
+
+---
+ drivers/staging/n821-cpld/cpld_i2c.c | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+
+--- a/drivers/staging/n821-cpld/cpld_i2c.c
++++ b/drivers/staging/n821-cpld/cpld_i2c.c
+@@ -77,8 +77,9 @@ static int n821_cpld_i2c_xfer_polling(st
+     {
+       int sleep;
+       int status = 0;
+-      for (sleep = 10; sleep > 0; sleep--) {
++      for (sleep = 100; sleep > 0; sleep--) {
+         regmap_read(i2c->regmap, 0x1, &status);
++        status &= 0x3f;
+         if ((status & 0x2) != 0) {
+           break;
+         }
+@@ -86,7 +87,6 @@ static int n821_cpld_i2c_xfer_polling(st
+       }
+       if (status & 0x8) {
+         // NACK
+-        dev_err(i2c->dev, "i2c xfer: id %d; addr: 0x%02x; NACK\n", count, msgs->addr);
+         return -EIO;
+       }
+       if (sleep == 0) {

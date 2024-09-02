@@ -1,0 +1,32 @@
+#
+# Copyright (C) 2023 OpenWrt.org
+#
+
+. /lib/functions/uci-defaults.sh
+
+board_config_update
+
+case "$(board_name)" in
+cisco,vedge1000)
+	ucidef_set_led_netdev "lan0-link" "lan0 link" "lan0:green:status" "lan0" "link"
+	ucidef_set_led_netdev "lan0-act" "lan0 act" "lan0:green:activity" "lan0" "tx rx"
+        ucidef_set_led_netdev "lan1-link" "lan1 link" "lan1:green:status" "lan1" "link"
+        ucidef_set_led_netdev "lan1-act" "lan1 act" "lan1:green:activity" "lan1" "tx rx"
+        ucidef_set_led_netdev "lan2-link" "lan2 link" "lan2:green:status" "lan2" "link"
+        ucidef_set_led_netdev "lan2-act" "lan2 act" "lan2:green:activity" "lan2" "tx rx"
+        ucidef_set_led_netdev "lan3-link" "lan3 link" "lan3:green:status" "lan3" "link"
+        ucidef_set_led_netdev "lan3-act" "lan3 act" "lan3:green:activity" "lan3" "tx rx"
+        ucidef_set_led_netdev "lan4-link" "lan4 link" "lan4:green:status" "lan4" "link"
+        ucidef_set_led_netdev "lan4-act" "lan4 act" "lan4:green:activity" "lan4" "tx rx"
+        ucidef_set_led_netdev "lan5-link" "lan5 link" "lan5:green:status" "lan5" "link"
+        ucidef_set_led_netdev "lan5-act" "lan5 act" "lan5:green:activity" "lan5" "tx rx"
+        ucidef_set_led_netdev "lan6-link" "lan6 link" "lan6:green:status" "lan6" "link"
+        ucidef_set_led_netdev "lan6-act" "lan6 act" "lan6:green:activity" "lan6" "tx rx"
+        ucidef_set_led_netdev "lan7-link" "lan7 link" "lan7:green:status" "lan7" "link"
+        ucidef_set_led_netdev "lan7-act" "lan7 act" "lan7:green:activity" "lan7" "tx rx"
+	;;
+esac
+
+board_config_flush
+
+exit 0
