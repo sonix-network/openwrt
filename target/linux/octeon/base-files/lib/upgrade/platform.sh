@@ -2,7 +2,9 @@
 # Copyright (C) 2021 OpenWrt.org
 #
 
-RAMFS_COPY_BIN="/usr/sbin/blkid"
+if [ -x /usr/sbin/blkid ]; then
+  RAMFS_COPY_BIN="/usr/sbin/blkid"
+fi
 
 platform_get_rootfs() {
 	local rootfsdev
@@ -52,6 +54,7 @@ platform_copy_config() {
 	itus,shield-router)
 		platform_copy_config_helper /dev/mmcblk1p1 vfat
 		;;
+	er|\
 	ubnt,edgerouter-4|\
 	ubnt,edgerouter-6p)
 		platform_copy_config_helper /dev/mmcblk0p1 vfat
