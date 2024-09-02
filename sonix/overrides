@@ -1,0 +1,8 @@
+# This file contains options that are not properly preserved using ./scripts/diffconfig.sh
+
+# Only use the SONIX feed for building, not for opkg/apk
+CONFIG_FEED_sonix=n
+
+# We are only using squashfs root
+CONFIG_TARGET_ROOTFS_EXT4FS=n
+CONFIG_TARGET_ROOTFS_TARGZ=n
