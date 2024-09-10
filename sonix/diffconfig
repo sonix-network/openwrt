@@ -170,6 +170,7 @@ CONFIG_PACKAGE_findutils-xargs=y
 CONFIG_PACKAGE_frr=y
 CONFIG_PACKAGE_frr-bfdd=y
 CONFIG_PACKAGE_frr-bgpd=y
+CONFIG_PACKAGE_frr-ospfd=y
 CONFIG_PACKAGE_frr-ospf6d=y
 CONFIG_PACKAGE_frr-pythontools=y
 CONFIG_PACKAGE_frr-staticd=y
