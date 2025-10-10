@@ -765,7 +765,6 @@ endef
 $(eval $(call KernelPackage,hwmon-adcxx))
 
 
-<<<<<<< HEAD
 define KernelPackage/polynomial
   TITLE:=polynomial support
   KCONFIG:=CONFIG_POLYNOMIAL
@@ -775,7 +774,6 @@ define KernelPackage/polynomial
 endef
 
 $(eval $(call KernelPackage,polynomial))
-=======
 define KernelPackage/hwmon-n821-cpld-fan
   TITLE:=N821 CPLD Fan sensor
   KCONFIG:=CONFIG_N821_CPLD_FAN
@@ -805,5 +803,3 @@ endef
 
 $(eval $(call KernelPackage,hwmon-n821-cpld-psu))
 
-
->>>>>>> f6cffe6fb9 (octeon: n821: Cisco vEdge 1000 full support)
