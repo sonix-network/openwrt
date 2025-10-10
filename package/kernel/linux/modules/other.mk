@@ -1090,7 +1090,6 @@ endef
 $(eval $(call KernelPackage,mhi-pci-generic))
 
 
-<<<<<<< HEAD
 define KernelPackage/regulator-userspace-consumer
   SUBMENU:=$(OTHER_MENU)
   TITLE:=Userspace regulator consumer support
@@ -1106,7 +1105,8 @@ define KernelPackage/regulator-userspace-consumer/description
 endef
 
 $(eval $(call KernelPackage,regulator-userspace-consumer))
-=======
+
+
 define KernelPackage/cisco-n821-cpld
   SUBMENU:=$(OTHER_MENU)
   TITLE:=Cisco N821 CPLD Support
@@ -1138,4 +1138,3 @@ define KernelPackage/gpio-n821-cpld/description
 endef
 
 $(eval $(call KernelPackage,gpio-n821-cpld))
->>>>>>> f6cffe6fb9 (octeon: n821: Cisco vEdge 1000 full support)
