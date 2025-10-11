@@ -29,7 +29,7 @@ Functionally sort of complete patch. Enough for production for now.
 
 --- a/drivers/staging/Kconfig
 +++ b/drivers/staging/Kconfig
-@@ -78,4 +78,6 @@ source "drivers/staging/qlge/Kconfig"
+@@ -64,4 +64,6 @@ source "drivers/staging/fieldbus/Kconfig
  
  source "drivers/staging/vme_user/Kconfig"
  
@@ -38,11 +38,11 @@ Functionally sort of complete patch. Enough for production for now.
  endif # STAGING
 --- a/drivers/staging/Makefile
 +++ b/drivers/staging/Makefile
-@@ -28,3 +28,4 @@ obj-$(CONFIG_PI433)		+= pi433/
+@@ -13,3 +13,4 @@ obj-$(CONFIG_GREYBUS)		+= greybus/
+ obj-$(CONFIG_BCM2835_VCHIQ)	+= vc04_services/
  obj-$(CONFIG_XIL_AXIS_FIFO)	+= axis-fifo/
- obj-$(CONFIG_FIELDBUS_DEV)     += fieldbus/
- obj-$(CONFIG_QLGE)		+= qlge/
-+obj-$(CONFIG_N821_CPLD) 	+= n821-cpld/
+ obj-$(CONFIG_GPIB)	 	+= gpib/
++obj-$(CONFIG_N821_CPLD)        += n821-cpld/
 --- /dev/null
 +++ b/drivers/staging/n821-cpld/Kconfig
 @@ -0,0 +1,58 @@

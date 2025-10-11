@@ -14,7 +14,7 @@ Subject: [PATCH] sonix: moving n821 cpld driver from staging
 
 --- a/drivers/mfd/Kconfig
 +++ b/drivers/mfd/Kconfig
-@@ -155,6 +155,18 @@ config MFD_ATMEL_HLCDC
+@@ -167,6 +167,18 @@ config MFD_ATMEL_HLCDC
  	  additional drivers must be enabled in order to use the
  	  functionality of the device.
  
@@ -35,10 +35,10 @@ Subject: [PATCH] sonix: moving n821 cpld driver from staging
  	select MFD_SYSCON
 --- a/drivers/mfd/Makefile
 +++ b/drivers/mfd/Makefile
-@@ -282,3 +282,6 @@ obj-$(CONFIG_MFD_ATC260X_I2C)	+= atc260x
+@@ -303,3 +303,6 @@ obj-$(CONFIG_MFD_RSMU_SPI)	+= rsmu_spi.o rsmu_core.o
+ obj-$(CONFIG_MFD_UPBOARD_FPGA)	+= upboard-fpga.o
  
- obj-$(CONFIG_MFD_RSMU_I2C)	+= rsmu_i2c.o rsmu_core.o
- obj-$(CONFIG_MFD_RSMU_SPI)	+= rsmu_spi.o rsmu_core.o
+ obj-$(CONFIG_MFD_LOONGSON_SE)	+= loongson-se.o
 +
 +obj-$(CONFIG_CISCO_N821_CPLD)  += cisco-n821-cpld.o
 +cisco-n821-cpld-objs  := cpld_core.o
