@@ -1,0 +1,27 @@
+From bb48210b45719af606444749247f214422a61e8d Mon Sep 17 00:00:00 2001
+From: Christian Svensson <blue@cmd.nu>
+Date: Sat, 11 Oct 2025 02:11:39 +0200
+Subject: [PATCH] sonix: Update for kernel 6.12
+
+---
+ drivers/mfd/cisco-n821-cpld.c | 3 +--
+ 1 file changed, 1 insertion(+), 2 deletions(-)
+
+diff --git a/drivers/mfd/cisco-n821-cpld.c b/drivers/mfd/cisco-n821-cpld.c
+index 80fd678d4ab2..fad32254b8d1 100644
+--- a/drivers/mfd/cisco-n821-cpld.c
++++ b/drivers/mfd/cisco-n821-cpld.c
+@@ -120,9 +120,8 @@ static int n821_cpld_probe(struct platform_device *pdev)
+   return devm_device_add_group(dev, &n821_cpld_group);
+ }
+ 
+-static int n821_cpld_remove(struct platform_device *pdev)
++static void n821_cpld_remove(struct platform_device *pdev)
+ {
+-  return 0;
+ }
+ 
+ 
+-- 
+2.51.0
+
