@@ -1275,7 +1275,7 @@ Allows setting 1000base-x instead of SGMII using device-tree attributes.
  		}
  	}
  	return 0;
-@@ -424,71 +437,17 @@ union cvmx_helper_link_info __cvmx_helpe
+@@ -468,71 +481,17 @@ union cvmx_helper_link_info __cvmx_helpe
  
  	pcs_misc_ctl_reg.u64 =
  	    cvmx_read_csr(CVMX_PCSX_MISCX_CTL_REG(index, interface));

@@ -9,7 +9,7 @@ Subject: [PATCH] sonix: fix mfd Makefile for N821 CPLD core module
 
 --- a/drivers/mfd/Makefile
 +++ b/drivers/mfd/Makefile
-@@ -284,4 +284,3 @@ obj-$(CONFIG_MFD_RSMU_I2C)	+= rsmu_i2c.o
+@@ -291,4 +291,3 @@ obj-$(CONFIG_MFD_RSMU_I2C)	+= rsmu_i2c.o
  obj-$(CONFIG_MFD_RSMU_SPI)	+= rsmu_spi.o rsmu_core.o
  
  obj-$(CONFIG_CISCO_N821_CPLD)  += cisco-n821-cpld.o
