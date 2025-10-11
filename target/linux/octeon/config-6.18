@@ -228,11 +228,8 @@ CONFIG_RANDSTRUCT_NONE=y
 CONFIG_RAS=y
 CONFIG_REGMAP=y
 CONFIG_REGMAP_I2C=y
-<<<<<<< HEAD:target/linux/octeon/config-6.12
 CONFIG_REGULATOR=y
-=======
 CONFIG_REGMAP_MMIO=y
->>>>>>> f6cffe6fb9 (octeon: n821: Cisco vEdge 1000 full support):target/linux/octeon/config-6.6
 CONFIG_RELAY=y
 CONFIG_RFS_ACCEL=y
 CONFIG_RPS=y
