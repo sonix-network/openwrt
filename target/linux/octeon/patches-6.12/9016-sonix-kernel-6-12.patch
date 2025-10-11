@@ -3,10 +3,6 @@ From: Christian Svensson <blue@cmd.nu>
 Date: Sat, 11 Oct 2025 02:11:39 +0200
 Subject: [PATCH] sonix: Update for kernel 6.12
 
----
- drivers/mfd/cisco-n821-cpld.c | 3 +--
- 1 file changed, 1 insertion(+), 2 deletions(-)
-
 diff --git a/drivers/mfd/cisco-n821-cpld.c b/drivers/mfd/cisco-n821-cpld.c
 index 80fd678d4ab2..fad32254b8d1 100644
 --- a/drivers/mfd/cisco-n821-cpld.c
@@ -25,3 +21,65 @@ index 80fd678d4ab2..fad32254b8d1 100644
 -- 
 2.51.0
 
+diff --git a/drivers/staging/n821-cpld/cpld_fan.c b/drivers/staging/n821-cpld/cpld_fan.c
+index 48fb0010e7c5..9cc0714df4c6 100644
+--- a/drivers/staging/n821-cpld/cpld_fan.c
++++ b/drivers/staging/n821-cpld/cpld_fan.c
+@@ -89,9 +89,8 @@ static int n821_cpld_fan_probe(struct platform_device *pdev)
+   return PTR_ERR_OR_ZERO(hwmon_dev);
+ }
+ 
+-static int n821_cpld_fan_remove(struct platform_device *pdev)
++static void n821_cpld_fan_remove(struct platform_device *pdev)
+ {
+-  return 0;
+ }
+ 
+ static struct of_device_id n821_cpld_fan_match_table[] = {
+diff --git a/drivers/staging/n821-cpld/cpld_gpio.c b/drivers/staging/n821-cpld/cpld_gpio.c
+index 1cc593077e47..4b4a4508139c 100644
+--- a/drivers/staging/n821-cpld/cpld_gpio.c
++++ b/drivers/staging/n821-cpld/cpld_gpio.c
+@@ -140,9 +140,8 @@ static int n821_cpld_gpio_probe(struct platform_device *pdev)
+   return ret;
+ }
+ 
+-static int n821_cpld_gpio_remove(struct platform_device *pdev)
++static void n821_cpld_gpio_remove(struct platform_device *pdev)
+ {
+-  return 0;
+ }
+ 
+ static struct of_device_id n821_cpld_gpio_match_table[] = {
+diff --git a/drivers/staging/n821-cpld/cpld_i2c.c b/drivers/staging/n821-cpld/cpld_i2c.c
+index aa1de1460793..8c5ced70707f 100644
+--- a/drivers/staging/n821-cpld/cpld_i2c.c
++++ b/drivers/staging/n821-cpld/cpld_i2c.c
+@@ -238,11 +238,10 @@ static int n821_cpld_i2c_probe(struct platform_device *pdev)
+   return 0;
+ }
+ 
+-static int n821_cpld_i2c_remove(struct platform_device *pdev)
++static void n821_cpld_i2c_remove(struct platform_device *pdev)
+ {
+   struct n821_cpld_i2c_data *drvdata = platform_get_drvdata(pdev);
+   i2c_del_adapter(&drvdata->adap);
+-  return 0;
+ }
+ 
+ static struct of_device_id n821_cpld_i2c_match_table[] = {
+diff --git a/drivers/staging/n821-cpld/cpld_psu.c b/drivers/staging/n821-cpld/cpld_psu.c
+index df0b5c63a12b..f141c3cdd28c 100644
+--- a/drivers/staging/n821-cpld/cpld_psu.c
++++ b/drivers/staging/n821-cpld/cpld_psu.c
+@@ -108,9 +108,8 @@ static int n821_cpld_psu_probe(struct platform_device *pdev)
+   return PTR_ERR_OR_ZERO(hwmon_dev);
+ }
+ 
+-static int n821_cpld_psu_remove(struct platform_device *pdev)
++static void n821_cpld_psu_remove(struct platform_device *pdev)
+ {
+-  return 0;
+ }
+ 
+ static struct of_device_id n821_cpld_psu_match_table[] = {
