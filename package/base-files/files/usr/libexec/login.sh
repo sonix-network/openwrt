@@ -12,8 +12,11 @@
 	esac
 }
 
-[ "$(uci -q get system.@system[0].ttylogin)" = 1 ] || exec /bin/login -f root
+# Pick an available login binary: busybox provides /bin/login, the shadow suite
+# provides /usr/bin/login. Both support "-f <user>" (force login, no password).
+login_bin=/bin/login
+[ -x "$login_bin" ] || login_bin=/usr/bin/login
 
-[ -x /usr/bin/login ] && exec /usr/bin/login
+[ "$(uci -q get system.@system[0].ttylogin)" = 1 ] || exec "$login_bin" -f root
 
-exec /bin/login
+exec "$login_bin"
