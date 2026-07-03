@@ -1,0 +1,24 @@
+From: Christian Svensson <blue@cmd.nu>
+Subject: [PATCH] octeon_mgmt: defer probe when the MAC comes from a not-yet-ready nvmem
+
+On the Cisco vEdge 1000 the management port (octmgmt0) reads its MAC from an
+i2c EEPROM via nvmem (like the LAN ports), but octeon_mgmt probes before the
+EEPROM's nvmem provider is registered. of_get_ethdev_address() then returns
+-EPROBE_DEFER, and the driver falls back to a *random* MAC instead of deferring,
+so mgmt0 -- and br-lan, which bridges it -- gets a different MAC (and DHCP lease)
+on every boot. The LAN ports are stable only because their driver defers.
+
+Honour -EPROBE_DEFER so the probe is retried once the EEPROM is up and the port
+gets its real, stable per-device MAC. See sonix-network/openwrt#13.
+---
+--- a/drivers/net/ethernet/cavium/octeon/octeon_mgmt.c
++++ b/drivers/net/ethernet/cavium/octeon/octeon_mgmt.c
+@@ -1499,6 +1499,8 @@
+ 	netdev->max_mtu = 16383 - OCTEON_MGMT_RX_HEADROOM - VLAN_HLEN;
+ 
+ 	result = of_get_ethdev_address(pdev->dev.of_node, netdev);
++	if (result == -EPROBE_DEFER)
++		goto err;
+ 	if (result)
+ 		eth_hw_addr_random(netdev);
+ 
