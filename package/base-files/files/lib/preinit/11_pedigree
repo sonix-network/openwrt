@@ -1,0 +1,26 @@
+# Print a one-line build pedigree to the console early in boot, so anyone
+# watching the serial console can immediately tell exactly which image is
+# running: the release, the build host, when it was built, and any dev tag.
+# Invaluable when a board can silently fall back to a different flashed image.
+
+pi_print_pedigree() {
+	[ -f /usr/lib/os-release ] || return 0
+	. /usr/lib/os-release
+	local when=
+	[ -n "$OPENWRT_BUILD_DATE" ] && \
+		when=" ($(date -u -d "@$OPENWRT_BUILD_DATE" '+%Y-%m-%d %H:%MZ' 2>/dev/null))"
+	local line="You are running ${OPENWRT_RELEASE:-OpenWrt}, built on ${OPENWRT_BUILD_HOST:-unknown}${when}"
+	[ -n "$OPENWRT_DEV_TAG" ] && line="$line - development tag \"$OPENWRT_DEV_TAG\""
+
+	# Write to the active console(s), the same way 30_failsafe_wait does: the
+	# preinit shell has no reliable /dev/console yet, so resolve the real device
+	# from /sys/class/tty/console/active (e.g. ttyS0).
+	local consoles="$(cat /sys/class/tty/console/active 2>/dev/null)"
+	[ -n "$consoles" ] || consoles=console
+	local c
+	for c in $consoles; do
+		[ -c "/dev/$c" ] && echo "$line" > "/dev/$c"
+	done
+}
+
+boot_hook_add preinit_main pi_print_pedigree
