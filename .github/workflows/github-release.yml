@@ -97,6 +97,7 @@ jobs:
           name: bin-${{ matrix.target }}-${{ matrix.variant }}
           path: |
             bin/targets/${{ matrix.target }}/${{ matrix.variant }}/openwrt-*-sysupgrade.tar
+            bin/targets/${{ matrix.target }}/${{ matrix.variant }}/openwrt-*-initramfs-kernel.bin
             bin/targets/${{ matrix.target }}/${{ matrix.variant }}/openwrt-*-combined-efi.img.gz
             bin/targets/${{ matrix.target }}/${{ matrix.variant }}/openwrt-*.config
             bin/targets/${{ matrix.target }}/${{ matrix.variant }}/openwrt-*.json
