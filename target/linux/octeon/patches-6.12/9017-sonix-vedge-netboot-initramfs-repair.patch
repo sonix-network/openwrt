@@ -1,0 +1,131 @@
+From: Christian Svensson <blue@cmd.nu>
+Subject: [PATCH] sonix: octeon: repair vEdge 1000 netboot initramfs corruption
+
+On the Cisco vEdge 1000, U-Boot (Cavium Octeon SDK) mirrors its boot-time
+console output into a DRAM buffer at a fixed physical address around 64 MiB
+(0x04000000). bootoctlinux copies the kernel + built-in initramfs to low
+physical memory and only then prints its final "Done loading app / Starting
+cores" messages, so a large netboot initramfs -- one whose .init.ramfs extends
+across 64 MiB -- gets a ~150 byte slice of its (compressed) payload overwritten
+with U-Boot's log text. The decompressor then desyncs and the kernel panics
+("LZMA data is corrupt") partway through unpacking. The disk-boot kernel is far
+smaller and never reaches 64 MiB, which is why this only bites netboot.
+
+Keep a known-good copy of that fixed-address window (and an FNV-1a checksum of
+the whole image) inside the kernel image itself and restore it in an early
+initcall, before the initramfs is unpacked. The window/checksum are filled in
+after link by target/linux/octeon/vedge-initramfs-fill.py; until then the code
+is a disarmed no-op, so it is safe for the whole octeon target.
+
+See sonix-network/openwrt#15.
+---
+--- /dev/null
++++ b/arch/mips/cavium-octeon/vedge-initramfs-repair.c
+@@ -0,0 +1,97 @@
++// SPDX-License-Identifier: GPL-2.0-only
++/*
++ * Cisco vEdge 1000 netboot initramfs repair.
++ *
++ * On this board, U-Boot (Cavium Octeon SDK) mirrors its boot-time console output
++ * into a DRAM buffer at a fixed physical address around 64 MiB (0x0400_0000).
++ * bootoctlinux copies the kernel + built-in initramfs to low physical memory and
++ * only *then* prints its final "Done loading app / Starting cores" messages, so a
++ * large netboot initramfs -- one whose .init.ramfs extends across 64 MiB -- gets a
++ * ~150 byte slice of its (compressed) payload overwritten with U-Boot's log text.
++ * The decompressor then desyncs and the kernel panics ("LZMA data is corrupt")
++ * partway through unpacking. The disk-boot kernel is far smaller and never reaches
++ * 64 MiB, which is why this only bites netboot. See sonix-network/openwrt#15.
++ *
++ * The damage is a small window at a fixed physical address, and U-Boot never
++ * touches it again after the handoff, so we keep a known-good copy of that window
++ * (and an FNV-1a checksum of the whole image) inside the kernel image itself --
++ * in .init.data, far from 64 MiB -- and restore it in an early initcall, before
++ * the initramfs is unpacked. If the image is still wrong afterwards (i.e. U-Boot
++ * damaged something outside the window) we panic with a clear message instead of
++ * failing cryptically inside the decompressor.
++ *
++ * The good[] window, the checksum and the "armed" marker are filled in after the
++ * kernel is linked by target/linux/octeon/vedge-initramfs-fill.py. Until that runs
++ * the struct is disarmed and this code is a no-op, so it is harmless on the
++ * non-initramfs kernel, on other octeon boards, and on builds that do not run the
++ * fill step.
++ */
++
++#include <linux/init.h>
++#include <linux/types.h>
++#include <linux/string.h>
++#include <linux/printk.h>
++#include <linux/panic.h>
++#include <linux/mm.h>		/* __pa() */
++
++extern char __initramfs_start[];
++extern unsigned long __initramfs_size;
++
++#define VEDGE_SCRATCH_PA	0x04000000UL	/* U-Boot DRAM console-buffer page */
++#define VEDGE_REPAIR_WIN	0x8000		/* 32 KiB: covers the ~150 B hit + slack */
++#define VEDGE_MAGIC		0x56454447u	/* 'VEDG': fill script locates the struct */
++#define VEDGE_ARMED		0x41524d44u	/* 'ARMD': fill script sets this when filled */
++
++static struct vedge_repair {
++	u32 magic;
++	u32 win_len;
++	u32 crc;	/* FNV-1a-32 of the correct whole initramfs */
++	u32 armed;	/* VEDGE_ARMED once the fill script has populated the fields */
++	u8  good[VEDGE_REPAIR_WIN];
++} vedge_repair __initdata = {
++	.magic   = VEDGE_MAGIC,
++	.win_len = VEDGE_REPAIR_WIN,
++};
++
++static u32 __init vedge_fnv1a(const u8 *p, unsigned long n)
++{
++	u32 h = 2166136261u;
++
++	while (n--) {
++		h ^= *p++;
++		h *= 16777619u;
++	}
++	return h;
++}
++
++static int __init vedge_repair_initramfs(void)
++{
++	unsigned long ramfs_pa, off;
++	u32 crc;
++
++	if (vedge_repair.armed != VEDGE_ARMED)
++		return 0;	/* fill step did not run: leave the image untouched */
++
++	ramfs_pa = __pa(__initramfs_start);
++	if (VEDGE_SCRATCH_PA <= ramfs_pa)
++		return 0;	/* initramfs sits above the scratch: cannot be hit */
++
++	off = VEDGE_SCRATCH_PA - ramfs_pa;
++	if (off + vedge_repair.win_len <= (unsigned long)__initramfs_size) {
++		memcpy(__initramfs_start + off, vedge_repair.good,
++		       vedge_repair.win_len);
++		pr_info("vedge: restored %u B of initramfs at 0x%lx (pa 0x%lx)\n",
++			vedge_repair.win_len, off, VEDGE_SCRATCH_PA);
++	}
++
++	crc = vedge_fnv1a((const u8 *)__initramfs_start,
++			  (unsigned long)__initramfs_size);
++	if (crc != vedge_repair.crc)
++		panic("vedge: initramfs checksum bad after repair (got %08x want %08x); U-Boot scratch region may have changed",
++		      crc, vedge_repair.crc);
++
++	pr_info("vedge: initramfs checksum OK (%08x, %lu bytes)\n",
++		crc, (unsigned long)__initramfs_size);
++	return 0;
++}
++early_initcall(vedge_repair_initramfs);
+--- a/arch/mips/cavium-octeon/Makefile
++++ b/arch/mips/cavium-octeon/Makefile
+@@ -12,6 +12,7 @@
+ obj-y := cpu.o setup.o octeon-platform.o octeon-irq.o csrc-octeon.o
+ obj-y += dma-octeon.o
+ obj-y += octeon-memcpy.o
++obj-y += vedge-initramfs-repair.o
+ obj-y += executive/
+ obj-y += crypto/
+ 
