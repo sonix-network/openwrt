@@ -191,6 +191,12 @@ define Package/base-files/install
 		$(1)/etc/openwrt_version \
 		$(1)/usr/lib/os-release
 
+	# Build pedigree for the boot-time banner (see /lib/preinit/11_pedigree):
+	# the build host, and an optional freeform tag from `make DEV_TAG=...`.
+	# (build date is already recorded as OPENWRT_BUILD_DATE.)
+	echo "OPENWRT_BUILD_HOST='$(shell hostname)'" >> $(1)/usr/lib/os-release
+	echo "OPENWRT_DEV_TAG='$(call qstrip,$(DEV_TAG))'" >> $(1)/usr/lib/os-release
+
 
 	$(SED) "s#%PATH%#$(TARGET_INIT_PATH)#g" \
 		$(1)/sbin/hotplug-call \
