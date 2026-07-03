@@ -14,6 +14,15 @@ define Build/strip-kernel
 	$(TARGET_CROSS)strip -R .notes $@ -o $@.stripped && mv $@.stripped $@
 endef
 
+# Fill in the CONFIG_VEDGE_INITRAMFS_REPAIR spare-window/checksum in the linked
+# initramfs kernel, so netboot survives U-Boot clobbering ~64 MiB. See
+# sonix-network/openwrt#15 and target/linux/octeon/vedge-initramfs-fill.py.
+define Build/vedge-initramfs-repair-fill
+	$(TARGET_CROSS)nm $(KDIR)/vmlinux-initramfs.debug > $@.syms
+	python3 $(TOPDIR)/target/linux/octeon/vedge-initramfs-fill.py $@ $@.syms
+	rm -f $@.syms
+endef
+
 DTS_DIR := $(DTS_DIR)/cavium-octeon
 
 define Device/Default
@@ -127,6 +136,7 @@ define Device/cisco_vedge1000
 	sfdisk \
 	uboot-envtools
   KERNEL := kernel-bin | append-dtb-elf
+  KERNEL_INITRAMFS := kernel-bin | vedge-initramfs-repair-fill | append-dtb-elf
   KERNEL_DEPENDS := $$(wildcard $(DTS_DIR)/$(DEVICE_DTS).dts)
   DEVICE_DTS := cn6130_cisco_vedge1000
 endef
