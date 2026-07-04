@@ -139,6 +139,7 @@ define Device/cisco_vedge1000
   KERNEL_INITRAMFS := kernel-bin | vedge-initramfs-repair-fill | append-dtb-elf
   KERNEL_DEPENDS := $$(wildcard $(DTS_DIR)/$(DEVICE_DTS).dts)
   DEVICE_DTS := cn6130_cisco_vedge1000
+  IMAGE/sysupgrade.tar/squashfs += | append-metadata
 endef
 TARGET_DEVICES += cisco_vedge1000
 
