@@ -50,7 +50,7 @@ jobs:
         include: ${{ fromJSON(needs.setup.outputs.matrix) }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
       - name: Setup toolchain
         id: toolchain
         run: |
@@ -92,7 +92,7 @@ jobs:
           cat bin/targets/${{ matrix.target }}/${{ matrix.variant }}/profiles.json | jq \
             > bin/targets/${{ matrix.target }}/${{ matrix.variant }}/openwrt-${{ matrix.target }}-${{ matrix.variant }}.json
       - name: Upload build artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: bin-${{ matrix.target }}-${{ matrix.variant }}
           path: |
@@ -109,13 +109,15 @@ jobs:
         run: |
           grep -h '^time: ' -r logs/ | cut -c 7- | sort -t '#' -n -k 4 | column -t -s '#' --table-columns PACKAGE,USER,SYSTEM,WALL
       - name: Upload logs
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         if: always()
         with:
           name: logs-${{ matrix.target }}-${{ matrix.variant }}
           path: logs/**
           if-no-files-found: error
           retention-days: 90
+  # Publish the build as a pre-release first; the smoke test promotes it to a
+  # full release only if the vEdge 1000 actually boots (see smoke-test/promote).
   release:
     name: Upload release
     runs-on: ubuntu-24.04
@@ -124,7 +126,7 @@ jobs:
       - build-matrix
     steps:
       - name: Retrieve Artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           pattern: bin-*
       - name: Release
@@ -136,3 +138,59 @@ jobs:
           target_commitish: "${{ github.sha }}"
           files: |
             bin-*/openwrt-*
+  # Boot the just-built vEdge 1000 image on real hardware. Runs on the
+  # self-hosted runner because it must reach the controller (unwedged) on the
+  # internal network. The composite action netboots the initramfs image (RAM
+  # only, does not touch any on-disk install) and uploads the captured boot log
+  # as the vedge1000-boot-log artifact. A failure here leaves the release as a
+  # pre-release; a success lets the promote job below mark it a full release.
+  smoke-test:
+    name: Smoke test (vEdge 1000)
+    needs:
+      - setup
+      - build-matrix
+    runs-on: self-hosted
+    steps:
+      - name: Download octeon images
+        uses: actions/download-artifact@v8
+        with:
+          name: bin-octeon-generic
+          path: image
+      - name: Smoke test on real vEdge 1000
+        uses: sonix-network/unwedge@v0.10.0
+        with:
+          image: image/openwrt-*-cisco_vedge1000-initramfs-kernel.bin
+          boot-log: vedge1000-boot.log
+          addr: ${{ secrets.UNWEDGE_ADDR }}
+          ca: ${{ secrets.UNWEDGE_CA }}
+          cert: ${{ secrets.UNWEDGE_CLIENT_CERT }}
+          key: ${{ secrets.UNWEDGE_CLIENT_KEY }}
+          # Confirm SSH connectivity after boot and that the just-built
+          # version is what actually booted (/etc/openwrt_release carries
+          # SONIX-<version>).
+          ssh-command: cat /etc/openwrt_release
+          ssh-expect: SONIX-${{ needs.setup.outputs.version_number }}
+  # Only runs if smoke-test succeeded: flip the pre-release to a full release
+  # and attach the boot log as proof of a clean boot.
+  promote:
+    name: Promote to full release
+    runs-on: ubuntu-24.04
+    needs:
+      - setup
+      - release
+      - smoke-test
+    steps:
+      - name: Retrieve vEdge 1000 boot log
+        uses: actions/download-artifact@v8
+        with:
+          name: vedge1000-boot-log
+          path: smoke
+      - name: Promote the release and attach the boot log
+        uses: softprops/action-gh-release@v2
+        with:
+          name: "v${{ needs.setup.outputs.version_number }}"
+          tag_name: "v${{ needs.setup.outputs.version_number }}"
+          prerelease: false
+          make_latest: "true"
+          files: |
+            smoke/vedge1000-boot.log
