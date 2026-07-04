@@ -1,0 +1,31 @@
+# The vEdge 1000 management port (mgmt0, bridged into br-lan) is a DHCP client by
+# default (see ../board.d/01_network). Its DHCPv4 lease is deterministic because
+# the server matches the reservation on the stable per-device mgmt0 MAC. DHCPv6
+# keys on the client DUID instead, and the generic 14_network-generate-duid picks
+# a random DUID-UUID that carries no MAC and is regenerated on every netboot, so
+# the server cannot pin a v6 reservation to the unit (the lease wanders).
+#
+# Seed a stable, MAC-derived DUID-LL (RFC 3315 type 3: 0x0003 + hwtype 0x0001 +
+# the 6-byte mgmt0 MAC) before 14_network-generate-duid runs. It is byte-for-byte
+# identical on every boot and reflash, so the DHCPv6 server can match the same
+# per-device reservation as v4 and hand out a fixed address. A DUID identifies the
+# node (not the interface), so seeding the device-wide default is correct.
+
+[ "$(cat /tmp/sysinfo/board_name 2>/dev/null)" = "cisco,vedge1000" ] || exit 0
+
+# Only seed a fresh/auto DUID; never clobber an explicitly configured one.
+case "$(uci -q get network.globals.dhcp_default_duid)" in
+	""|auto) ;;
+	*) exit 0 ;;
+esac
+
+mac="$(cat /sys/class/net/mgmt0/address 2>/dev/null)"
+[ -n "$mac" ] || exit 0
+
+uci -q batch <<-EOF >/dev/null
+	set network.globals=globals
+	set network.globals.dhcp_default_duid="00030001$(echo "$mac" | tr -d ':')"
+	commit network
+EOF
+
+exit 0
