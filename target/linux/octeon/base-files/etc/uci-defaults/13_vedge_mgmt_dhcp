@@ -1,0 +1,36 @@
+# Make the vEdge 1000 management network (mgmt0, bridged into br-lan) a robust,
+# deterministic DHCP client. The interface is a DHCP client by default (see
+# ../board.d/01_network); this runs before 14_network-generate-duid.
+#
+# 1. Stable DHCPv6 DUID. DHCPv4 leases are deterministic because the server
+#    matches the reservation on the stable per-device mgmt0 MAC, but DHCPv6 keys
+#    on the client DUID. 14_network-generate-duid picks a random DUID-UUID that
+#    carries no MAC and is regenerated on every netboot, so the server cannot pin
+#    a v6 reservation. Seed a stable, MAC-derived DUID-LL (RFC 3315 type 3).
+#
+# 2. reqaddress=force on the management lan6. This interface is expected to get a
+#    DHCPv6 address (it has a reservation), so require it. odhcp6c otherwise only
+#    (re)starts the DHCPv6 transaction on the first managed RA that adds a new
+#    prefix; if odhcp6c loses the initial race to br-lan's link-local being ready
+#    the SOLICIT is never retried and v6 silently never comes up.
+
+[ "$(cat /tmp/sysinfo/board_name 2>/dev/null)" = "cisco,vedge1000" ] || exit 0
+
+mac="$(cat /sys/class/net/mgmt0/address 2>/dev/null)"
+
+# Seed a fresh/auto DUID only; never clobber an explicitly configured one.
+case "$(uci -q get network.globals.dhcp_default_duid)" in
+	""|auto)
+		[ -n "$mac" ] && {
+			uci set network.globals=globals
+			uci set network.globals.dhcp_default_duid="00030001$(echo "$mac" | tr -d ':')"
+		}
+	;;
+esac
+
+# Require a DHCPv6 address on the management interface.
+[ -n "$(uci -q get network.lan6)" ] && uci set network.lan6.reqaddress='force'
+
+uci commit network
+
+exit 0
