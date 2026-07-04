@@ -116,12 +116,39 @@ jobs:
           path: logs/**
           if-no-files-found: error
           retention-days: 90
+  # Boot the just-built vEdge 1000 image on real hardware and only let the
+  # release proceed if it reaches a healthy userspace. Runs on the self-hosted
+  # runner because it must reach the controller (unwedged) on the internal
+  # network. The composite action netboots the initramfs image (RAM only, does
+  # not touch any on-disk install) and uploads the captured boot log.
+  smoke-test:
+    name: Smoke test (vEdge 1000)
+    needs:
+      - setup
+      - build-matrix
+    runs-on: self-hosted
+    steps:
+      - name: Download octeon images
+        uses: actions/download-artifact@v4
+        with:
+          name: bin-octeon-generic
+          path: image
+      - name: Smoke test on real vEdge 1000
+        uses: sonix-network/unwedge@v0.9.1
+        with:
+          image: image/openwrt-*-cisco_vedge1000-initramfs-kernel.bin
+          boot-log: vedge1000-boot.log
+          addr: ${{ secrets.UNWEDGE_ADDR }}
+          ca: ${{ secrets.UNWEDGE_CA }}
+          cert: ${{ secrets.UNWEDGE_CLIENT_CERT }}
+          key: ${{ secrets.UNWEDGE_CLIENT_KEY }}
   release:
     name: Upload release
     runs-on: ubuntu-24.04
     needs:
       - setup
       - build-matrix
+      - smoke-test
     steps:
       - name: Retrieve Artifacts
         uses: actions/download-artifact@v4
