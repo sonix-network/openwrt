@@ -154,6 +154,11 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           pattern: bin-*
+      - name: Retrieve vEdge 1000 boot log
+        uses: actions/download-artifact@v4
+        with:
+          name: vedge1000-boot-log
+          path: smoke
       - name: Release
         uses: softprops/action-gh-release@v2
         with:
@@ -163,3 +168,4 @@ jobs:
           target_commitish: "${{ github.sha }}"
           files: |
             bin-*/openwrt-*
+            smoke/vedge1000-boot.log
